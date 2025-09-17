@@ -8,6 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import {z} from 'genkit';
 
 const VerifyUserDetailsWithAIInputSchema = z.object({
@@ -31,6 +32,7 @@ export async function verifyUserDetailsWithAI(input: VerifyUserDetailsWithAIInpu
 
 const prompt = ai.definePrompt({
   name: 'verifyUserDetailsWithAIPrompt',
+  model: googleAI.model('gemini-1.5-flash-preview'),
   input: {schema: VerifyUserDetailsWithAIInputSchema},
   output: {schema: VerifyUserDetailsWithAIOutputSchema},
   prompt: `You are an AI assistant tasked with verifying user details for event participation.
