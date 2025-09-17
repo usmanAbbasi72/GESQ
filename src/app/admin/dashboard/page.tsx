@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { members as initialMembers, events, pendingMembers as initialPendingMembers } from '@/lib/data';
+import { members as initialMembers, events as initialEvents, pendingMembers as initialPendingMembers } from '@/lib/data';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,12 +26,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [members, setMembers] = React.useState<Member[]>(initialMembers);
-  const [pendingMembers, setPendingMembers] = React.useState<Omit<Member, 'id' | 'approved'>[]>(initialPendingMembers);
+  const [pendingMembers, setPendingMembers] = React.useState<(Omit<Member, 'id' | 'approved'> & { originalCnic: string })[]>(initialPendingMembers.map(m => ({ ...m, originalCnic: m.cnic })));
+  const [events, setEvents] = React.useState<Event[]>(initialEvents);
+
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
-  
   const [newMemberName, setNewMemberName] = React.useState('');
   const [newMemberEvent, setNewMemberEvent] = React.useState('');
   const [newMemberRole, setNewMemberRole] = React.useState<'Participant' | 'Volunteer' | 'Organizer'>('Participant');
+  
+  const [editingMember, setEditingMember] = React.useState<Member | null>(null);
+  const [isEditMemberOpen, setIsEditMemberOpen] = React.useState(false);
+
+  const [editingPendingMember, setEditingPendingMember] = React.useState<(Omit<Member, 'id' | 'approved'> & { originalCnic: string }) | null>(null);
+  const [isEditPendingMemberOpen, setIsEditPendingMemberOpen] = React.useState(false);
+
+  const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
+  const [isEditEventOpen, setIsEditEventOpen] = React.useState(false);
+
 
   const handleApprove = (pendingMember: Omit<Member, 'id' | 'approved'>) => {
     const newMember: Member = {
@@ -53,6 +64,11 @@ export default function AdminDashboard() {
     setMembers(members.filter(m => m.id !== member.id));
     toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
   };
+  
+  const handleDeleteEvent = (event: Event) => {
+    setEvents(events.filter(e => e.name !== event.name));
+    toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
+  };
 
   const handleAddMember = () => {
     if (!newMemberName || !newMemberEvent || !newMemberRole) {
@@ -60,7 +76,7 @@ export default function AdminDashboard() {
       return;
     }
     
-    const newPendingMember: Omit<Member, 'id' | 'approved'> = {
+    const newPendingMember = {
       userName: newMemberName,
       fatherName: 'N/A', // Father's name and CNIC are not in the form
       cnic: `N/A-${Math.random().toString(36).substring(7)}`, // Add a random value to avoid collisions on key
@@ -68,13 +84,52 @@ export default function AdminDashboard() {
       role: newMemberRole,
     };
 
-    setPendingMembers([...pendingMembers, newPendingMember]);
+    setPendingMembers([...pendingMembers, { ...newPendingMember, originalCnic: newPendingMember.cnic }]);
     setIsAddMemberOpen(false);
     toast({ title: "Member Added", description: `${newMemberName} has been added to the pending list.`});
     // Reset form
     setNewMemberName('');
     setNewMemberEvent('');
     setNewMemberRole('Participant');
+  };
+
+  const handleOpenEditMember = (member: Member) => {
+    setEditingMember({ ...member });
+    setIsEditMemberOpen(true);
+  };
+
+  const handleUpdateMember = () => {
+    if (!editingMember) return;
+    setMembers(members.map(m => (m.id === editingMember.id ? editingMember : m)));
+    setIsEditMemberOpen(false);
+    setEditingMember(null);
+    toast({ title: "Changes Saved", description: `Details for ${editingMember.userName} have been updated.` });
+  };
+
+  const handleOpenEditPendingMember = (member: Omit<Member, 'id' | 'approved'> & { originalCnic: string }) => {
+    setEditingPendingMember({ ...member });
+    setIsEditPendingMemberOpen(true);
+  };
+
+  const handleUpdatePendingMember = () => {
+    if (!editingPendingMember) return;
+    setPendingMembers(pendingMembers.map(m => (m.originalCnic === editingPendingMember.originalCnic ? editingPendingMember : m)));
+    setIsEditPendingMemberOpen(false);
+    setEditingPendingMember(null);
+    toast({ title: "Changes Saved", description: `Details for ${editingPendingMember.userName} have been updated.` });
+  };
+  
+  const handleOpenEditEvent = (event: Event) => {
+    setEditingEvent({ ...event });
+    setIsEditEventOpen(true);
+  };
+
+  const handleUpdateEvent = () => {
+    if (!editingEvent) return;
+    setEvents(events.map(e => (e.name === editingEvent.name ? editingEvent : e)));
+    setIsEditEventOpen(false);
+    setEditingEvent(null);
+    toast({ title: "Changes Saved", description: `Details for ${editingEvent.name} have been updated.` });
   };
 
   return (
@@ -172,48 +227,16 @@ export default function AdminDashboard() {
                       <TableCell>{member.event}</TableCell>
                       <TableCell><Badge variant="outline">{member.role}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Dialog>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                               <DialogTrigger asChild><DropdownMenuItem>Edit</DropdownMenuItem></DialogTrigger>
+                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)}>Edit</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                           <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Edit Member</DialogTitle>
-                              </DialogHeader>
-                               <div className="grid gap-4 py-4">
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="name" className="text-right">Name</Label>
-                                    <Input id="name" defaultValue={member.userName} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                                    <Input id="fatherName" defaultValue={member.fatherName} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="cnic" className="text-right">CNIC</Label>
-                                    <Input id="cnic" defaultValue={member.cnic} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="event" className="text-right">Event</Label>
-                                    <Input id="event" defaultValue={member.event} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="role" className="text-right">Role</Label>
-                                    <Input id="role" defaultValue={member.role} className="col-span-3" />
-                                  </div>
-                               </div>
-                               <DialogFooter>
-                                <Button onClick={() => toast({title: "Changes Saved"})}>Save changes</Button>
-                               </DialogFooter>
-                           </DialogContent>
-                        </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -241,15 +264,14 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingMembers.map((member, index) => (
-                    <TableRow key={index}>
+                  {pendingMembers.map((member) => (
+                    <TableRow key={member.originalCnic}>
                       <TableCell>{member.userName}</TableCell>
                       <TableCell>{member.fatherName}</TableCell>
                       <TableCell>{member.cnic}</TableCell>
                       <TableCell>{member.event}</TableCell>
                       <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                        <TableCell className="text-right">
-                        <Dialog>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
@@ -257,41 +279,10 @@ export default function AdminDashboard() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
-                              <DialogTrigger asChild><DropdownMenuItem>Edit</DropdownMenuItem></DialogTrigger>
+                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)}>Edit</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                           <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Edit Pending Member</DialogTitle>
-                              </DialogHeader>
-                               <div className="grid gap-4 py-4">
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="name" className="text-right">Name</Label>
-                                    <Input id="name" defaultValue={member.userName} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                                    <Input id="fatherName" defaultValue={member.fatherName} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="cnic" className="text-right">CNIC</Label>
-                                    <Input id="cnic" defaultValue={member.cnic} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="event" className="text-right">Event</Label>
-                                    <Input id="event" defaultValue={member.event} className="col-span-3" />
-                                  </div>
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="role" className="text-right">Role</Label>
-                                    <Input id="role" defaultValue={member.role} className="col-span-3" />
-                                  </div>
-                               </div>
-                               <DialogFooter>
-                                <Button onClick={() => toast({title: "Changes Saved"})}>Save changes</Button>
-                               </DialogFooter>
-                           </DialogContent>
-                         </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -323,40 +314,16 @@ export default function AdminDashboard() {
                       <TableCell>{event.date}</TableCell>
                       <TableCell>{event.organizedBy}</TableCell>
                       <TableCell className="text-right">
-                         <Dialog>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DialogTrigger asChild><DropdownMenuItem>Edit</DropdownMenuItem></DialogTrigger>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                           <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Edit Event</DialogTitle>
-                              </DialogHeader>
-                               <div className="grid gap-4 py-4">
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="name" className="text-right">Name</Label>
-                                    <Input id="name" defaultValue={event.name} className="col-span-3" />
-                                  </div>
-                                   <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="date" className="text-right">Date</Label>
-                                    <Input id="date" defaultValue={event.date} className="col-span-3" />
-                                  </div>
-                                   <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="organizedBy" className="text-right">Organizer</Label>
-                                    <Input id="organizedBy" defaultValue={event.organizedBy} className="col-span-3" />
-                                  </div>
-                               </div>
-                               <DialogFooter>
-                                <Button onClick={() => toast({title: "Changes Saved"})}>Save changes</Button>
-                               </DialogFooter>
-                           </DialogContent>
-                         </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -366,6 +333,142 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Edit Approved Member Dialog */}
+      <Dialog open={isEditMemberOpen} onOpenChange={setIsEditMemberOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Member</DialogTitle>
+          </DialogHeader>
+          {editingMember && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">Name</Label>
+                <Input id="name" value={editingMember.userName} onChange={e => setEditingMember({...editingMember, userName: e.target.value})} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                <Input id="fatherName" value={editingMember.fatherName} onChange={e => setEditingMember({...editingMember, fatherName: e.target.value})} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="cnic" className="text-right">CNIC</Label>
+                <Input id="cnic" value={editingMember.cnic} onChange={e => setEditingMember({...editingMember, cnic: e.target.value})} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="event" className="text-right">Event</Label>
+                 <Select onValueChange={(value) => setEditingMember({...editingMember, event: value})} value={editingMember.event}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map(event => (
+                      <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="role" className="text-right">Role</Label>
+                <Select onValueChange={(value) => setEditingMember({...editingMember, role: value as any})} value={editingMember.role}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Participant">Participant</SelectItem>
+                    <SelectItem value="Volunteer">Volunteer</SelectItem>
+                    <SelectItem value="Organizer">Organizer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateMember}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Pending Member Dialog */}
+      <Dialog open={isEditPendingMemberOpen} onOpenChange={setIsEditPendingMemberOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Pending Member</DialogTitle>
+          </DialogHeader>
+          {editingPendingMember && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">Name</Label>
+                <Input id="name" value={editingPendingMember.userName} onChange={e => setEditingPendingMember({...editingPendingMember, userName: e.target.value})} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                <Input id="fatherName" value={editingPendingMember.fatherName} onChange={e => setEditingPendingMember({...editingPendingMember, fatherName: e.target.value})} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="cnic" className="text-right">CNIC</Label>
+                <Input id="cnic" value={editingPendingMember.cnic} onChange={e => setEditingPendingMember({...editingPendingMember, cnic: e.target.value})} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="event" className="text-right">Event</Label>
+                <Select onValueChange={(value) => setEditingPendingMember({...editingPendingMember, event: value})} value={editingPendingMember.event}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map(event => (
+                      <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="role" className="text-right">Role</Label>
+                <Select onValueChange={(value) => setEditingPendingMember({...editingPendingMember, role: value as any})} value={editingPendingMember.role}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Participant">Participant</SelectItem>
+                    <SelectItem value="Volunteer">Volunteer</SelectItem>
+                    <SelectItem value="Organizer">Organizer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdatePendingMember}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Event Dialog */}
+       <Dialog open={isEditEventOpen} onOpenChange={setIsEditEventOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Event</DialogTitle>
+          </DialogHeader>
+          {editingEvent && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">Name</Label>
+                <Input id="name" value={editingEvent.name} onChange={(e) => setEditingEvent({...editingEvent, name: e.target.value })} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="date" className="text-right">Date</Label>
+                <Input id="date" value={editingEvent.date} onChange={(e) => setEditingEvent({...editingEvent, date: e.target.value })} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="organizedBy" className="text-right">Organizer</Label>
+                <Input id="organizedBy" value={editingEvent.organizedBy} onChange={(e) => setEditingEvent({...editingEvent, organizedBy: e.target.value })} className="col-span-3" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateEvent}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
