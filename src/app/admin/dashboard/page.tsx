@@ -68,11 +68,12 @@ export default function AdminDashboard() {
 
   const handleApprove = async (pendingMember: Omit<Member, 'id' | 'approved'>) => {
     try {
-      const newMemberId = `GES${String(members.length + 10).padStart(3, '0')}`;
+      const newMemberId = `GES${String(members.length + 100 + pendingMembers.length).padStart(3, '0')}`;
       const newMember: Member = {
-        ...pendingMember,
+        ...(pendingMember as Omit<Member, 'id' | 'approved' | 'event'>),
         id: newMemberId,
         approved: true,
+        event: '',
       };
       await setDoc(doc(db, "members", newMemberId), newMember);
       setMembers([...members, newMember]);
@@ -134,7 +135,6 @@ export default function AdminDashboard() {
       userName: newMemberName,
       fatherName: newMemberFatherName,
       cnic: newMemberCnic,
-      event: '',
       role: newMemberRole,
     };
     
@@ -182,16 +182,20 @@ export default function AdminDashboard() {
       const q = query(collection(db, "pendingMembers"), where("cnic", "==", editingPendingMember.originalCnic));
       const querySnapshot = await getDocs(q);
       const { originalCnic, ...memberToSave } = editingPendingMember;
-      querySnapshot.forEach(async (doc) => {
-        await setDoc(doc.ref, memberToSave);
-      });
+      
+      if (querySnapshot.empty) {
+        throw new Error("Pending member not found");
+      }
 
-      setPendingMembers(pendingMembers.map(m => (m.originalCnic === editingPendingMember.originalCnic ? editingPendingMember : m)));
+      const docRef = querySnapshot.docs[0].ref;
+      await setDoc(docRef, memberToSave);
+
+      setPendingMembers(pendingMembers.map(m => (m.originalCnic === editingPendingMember.originalCnic ? { ...memberToSave, originalCnic: memberToSave.cnic } : m)));
       setIsEditPendingMemberOpen(false);
       setEditingPendingMember(null);
       toast({ title: "Changes Saved", description: `Details for ${editingPendingMember.userName} have been updated.` });
     } catch(e) {
-       toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
+       toast({ title: 'Error', description: `Failed to update member. ${e instanceof Error ? e.message : ''}`, variant: 'destructive' });
     }
   };
   
@@ -414,9 +418,9 @@ export default function AdminDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleApprove(member as any)}>Approve</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member as any)}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -544,19 +548,6 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="cnic" className="text-right">CNIC</Label>
                 <Input id="cnic" value={editingPendingMember.cnic} onChange={e => setEditingPendingMember({...editingPendingMember, cnic: e.target.value})} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="event" className="text-right">Event</Label>
-                <Select onValueChange={(value) => setEditingPendingMember({...editingPendingMember, event: value})} value={editingPendingMember.event}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select an event" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {events.map(event => (
-                      <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">Role</Label>
