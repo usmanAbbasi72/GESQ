@@ -150,7 +150,7 @@ export default function AdminDashboard() {
     try {
         await addDoc(collection(db, "pendingMembers"), newPendingMemberData);
         setPendingMembers(prev => [...prev, { ...newPendingMemberData, originalCnic: newPendingMemberData.cnic }]);
-        setIsAddMemberOpen(false);
+        setIsAddMemberOpen(false); // This line closes the dialog
         toast({ title: "Member Added", description: `${newMemberName} is pending approval.`});
         // Reset form
         setNewMemberName('');
