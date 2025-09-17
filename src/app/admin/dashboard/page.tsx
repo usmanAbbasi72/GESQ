@@ -1,7 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { members as initialMembers, events as initialEvents, pendingMembers as initialPendingMembers } from '@/lib/data';
+import { getMembers as fetchMembers, getEvents as fetchEvents, getPendingMembers as fetchPendingMembers } from '@/lib/data';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, doc, setDoc, deleteDoc, getDocs, where, query } from 'firebase/firestore';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,9 +27,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function AdminDashboard() {
   const { toast } = useToast();
-  const [members, setMembers] = React.useState<Member[]>(initialMembers);
-  const [pendingMembers, setPendingMembers] = React.useState<(Omit<Member, 'id' | 'approved'> & { originalCnic: string })[]>(initialPendingMembers.map(m => ({ ...m, originalCnic: m.cnic })));
-  const [events, setEvents] = React.useState<Event[]>(initialEvents);
+  const [members, setMembers] = React.useState<Member[]>([]);
+  const [pendingMembers, setPendingMembers] = React.useState<(Omit<Member, 'id' | 'approved'> & { originalCnic: string })[]>([]);
+  const [events, setEvents] = React.useState<Event[]>([]);
+  
+  React.useEffect(() => {
+    const loadData = async () => {
+      const [membersData, pendingData, eventsData] = await Promise.all([
+        fetchMembers(),
+        fetchPendingMembers(),
+        fetchEvents(),
+      ]);
+      setMembers(membersData);
+      setPendingMembers(pendingData.map(m => ({ ...m, originalCnic: m.cnic })));
+      setEvents(eventsData);
+    };
+    loadData();
+  }, []);
 
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
   const [newMemberName, setNewMemberName] = React.useState('');
@@ -44,33 +60,69 @@ export default function AdminDashboard() {
   const [isEditEventOpen, setIsEditEventOpen] = React.useState(false);
 
 
-  const handleApprove = (pendingMember: Omit<Member, 'id' | 'approved'>) => {
-    const newMember: Member = {
-      ...pendingMember,
-      id: `GES${String(members.length + 10).padStart(3, '0')}`,
-      approved: true,
-    };
-    setMembers([...members, newMember]);
-    setPendingMembers(pendingMembers.filter(m => m.cnic !== pendingMember.cnic));
-    toast({ title: 'Member Approved', description: `${pendingMember.userName} has been approved.` });
+  const handleApprove = async (pendingMember: Omit<Member, 'id' | 'approved'>) => {
+    try {
+      const newMemberId = `GES${String(members.length + 10).padStart(3, '0')}`;
+      const newMember: Member = {
+        ...pendingMember,
+        id: newMemberId,
+        approved: true,
+      };
+      await setDoc(doc(db, "members", newMemberId), newMember);
+      setMembers([...members, newMember]);
+      
+      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.cnic));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (doc) => {
+        await deleteDoc(doc.ref);
+      });
+
+      setPendingMembers(pendingMembers.filter(m => m.cnic !== pendingMember.cnic));
+      toast({ title: 'Member Approved', description: `${pendingMember.userName} has been approved.` });
+    } catch(e) {
+      toast({ title: 'Error', description: 'Failed to approve member.', variant: 'destructive' });
+    }
   };
 
-  const handleReject = (pendingMember: Omit<Member, 'id' | 'approved'>) => {
-    setPendingMembers(pendingMembers.filter(m => m.cnic !== pendingMember.cnic));
-    toast({ title: 'Member Rejected', description: `${pendingMember.userName} has been rejected.`, variant: 'destructive' });
+  const handleReject = async (pendingMember: Omit<Member, 'id' | 'approved'>) => {
+    try {
+      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.cnic));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (doc) => {
+        await deleteDoc(doc.ref);
+      });
+      setPendingMembers(pendingMembers.filter(m => m.cnic !== pendingMember.cnic));
+      toast({ title: 'Member Rejected', description: `${pendingMember.userName} has been rejected.`, variant: 'destructive' });
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to reject member.', variant: 'destructive' });
+    }
   };
   
-  const handleDelete = (member: Member) => {
-    setMembers(members.filter(m => m.id !== member.id));
-    toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
+  const handleDelete = async (member: Member) => {
+    try {
+      await deleteDoc(doc(db, "members", member.id));
+      setMembers(members.filter(m => m.id !== member.id));
+      toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
+    } catch (e) {
+       toast({ title: 'Error', description: 'Failed to delete member.', variant: 'destructive' });
+    }
   };
   
-  const handleDeleteEvent = (event: Event) => {
-    setEvents(events.filter(e => e.name !== event.name));
-    toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
+  const handleDeleteEvent = async (event: Event) => {
+    try {
+      const q = query(collection(db, "events"), where("name", "==", event.name));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (doc) => {
+        await deleteDoc(doc.ref);
+      });
+      setEvents(events.filter(e => e.name !== event.name));
+      toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
+    } catch(e) {
+      toast({ title: 'Error', description: 'Failed to delete event.', variant: 'destructive' });
+    }
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (!newMemberName || !newMemberEvent || !newMemberRole) {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
@@ -83,14 +135,19 @@ export default function AdminDashboard() {
       event: newMemberEvent,
       role: newMemberRole,
     };
-
-    setPendingMembers([...pendingMembers, { ...newPendingMember, originalCnic: newPendingMember.cnic }]);
-    setIsAddMemberOpen(false);
-    toast({ title: "Member Added", description: `${newMemberName} has been added to the pending list.`});
-    // Reset form
-    setNewMemberName('');
-    setNewMemberEvent('');
-    setNewMemberRole('Participant');
+    
+    try {
+        await addDoc(collection(db, "pendingMembers"), newPendingMember);
+        setPendingMembers([...pendingMembers, { ...newPendingMember, originalCnic: newPendingMember.cnic }]);
+        setIsAddMemberOpen(false);
+        toast({ title: "Member Added", description: `${newMemberName} has been added to the pending list.`});
+        // Reset form
+        setNewMemberName('');
+        setNewMemberEvent('');
+        setNewMemberRole('Participant');
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to add member.', variant: 'destructive' });
+    }
   };
 
   const handleOpenEditMember = (member: Member) => {
@@ -98,12 +155,17 @@ export default function AdminDashboard() {
     setIsEditMemberOpen(true);
   };
 
-  const handleUpdateMember = () => {
+  const handleUpdateMember = async () => {
     if (!editingMember) return;
-    setMembers(members.map(m => (m.id === editingMember.id ? editingMember : m)));
-    setIsEditMemberOpen(false);
-    setEditingMember(null);
-    toast({ title: "Changes Saved", description: `Details for ${editingMember.userName} have been updated.` });
+    try {
+      await setDoc(doc(db, "members", editingMember.id), editingMember);
+      setMembers(members.map(m => (m.id === editingMember.id ? editingMember : m)));
+      setIsEditMemberOpen(false);
+      setEditingMember(null);
+      toast({ title: "Changes Saved", description: `Details for ${editingMember.userName} have been updated.` });
+    } catch(e) {
+      toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
+    }
   };
 
   const handleOpenEditPendingMember = (member: Omit<Member, 'id' | 'approved'> & { originalCnic: string }) => {
@@ -111,12 +173,23 @@ export default function AdminDashboard() {
     setIsEditPendingMemberOpen(true);
   };
 
-  const handleUpdatePendingMember = () => {
+  const handleUpdatePendingMember = async () => {
     if (!editingPendingMember) return;
-    setPendingMembers(pendingMembers.map(m => (m.originalCnic === editingPendingMember.originalCnic ? editingPendingMember : m)));
-    setIsEditPendingMemberOpen(false);
-    setEditingPendingMember(null);
-    toast({ title: "Changes Saved", description: `Details for ${editingPendingMember.userName} have been updated.` });
+    try {
+      const q = query(collection(db, "pendingMembers"), where("cnic", "==", editingPendingMember.originalCnic));
+      const querySnapshot = await getDocs(q);
+      const { originalCnic, ...memberToSave } = editingPendingMember;
+      querySnapshot.forEach(async (doc) => {
+        await setDoc(doc.ref, memberToSave);
+      });
+
+      setPendingMembers(pendingMembers.map(m => (m.originalCnic === editingPendingMember.originalCnic ? editingPendingMember : m)));
+      setIsEditPendingMemberOpen(false);
+      setEditingPendingMember(null);
+      toast({ title: "Changes Saved", description: `Details for ${editingPendingMember.userName} have been updated.` });
+    } catch(e) {
+       toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
+    }
   };
   
   const handleOpenEditEvent = (event: Event) => {
@@ -124,12 +197,21 @@ export default function AdminDashboard() {
     setIsEditEventOpen(true);
   };
 
-  const handleUpdateEvent = () => {
+  const handleUpdateEvent = async () => {
     if (!editingEvent) return;
-    setEvents(events.map(e => (e.name === editingEvent.name ? editingEvent : e)));
-    setIsEditEventOpen(false);
-    setEditingEvent(null);
-    toast({ title: "Changes Saved", description: `Details for ${editingEvent.name} have been updated.` });
+     try {
+      const q = query(collection(db, "events"), where("name", "==", editingEvent.name));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (doc) => {
+        await setDoc(doc.ref, editingEvent);
+      });
+      setEvents(events.map(e => (e.name === editingEvent.name ? editingEvent : e)));
+      setIsEditEventOpen(false);
+      setEditingEvent(null);
+      toast({ title: "Changes Saved", description: `Details for ${editingEvent.name} have been updated.` });
+    } catch(e) {
+      toast({ title: 'Error', description: 'Failed to update event.', variant: 'destructive' });
+    }
   };
 
   return (

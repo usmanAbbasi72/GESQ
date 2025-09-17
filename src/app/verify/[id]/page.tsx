@@ -24,18 +24,23 @@ export default function VerifyPage() {
   const [id, setId] = useState<string>('');
 
   useEffect(() => {
-    const currentId = Array.isArray(params.id) ? params.id[0] : params.id;
-    if (currentId) {
-      setId(currentId);
-      const foundMember = getMemberById(currentId);
-      setMember(foundMember);
-      if (foundMember) {
-        const foundEvent = getEventByName(foundMember.event);
-        setEvent(foundEvent);
+    if (params) {
+      const currentId = Array.isArray(params.id) ? params.id[0] : params.id;
+      if (currentId) {
+        setId(currentId);
+        setLoading(true);
+        getMemberById(currentId).then(foundMember => {
+          setMember(foundMember);
+          if (foundMember) {
+            getEventByName(foundMember.event).then(foundEvent => {
+              setEvent(foundEvent);
+            });
+          }
+          setLoading(false);
+        });
       }
     }
-    setLoading(false);
-  }, [params.id]);
+  }, [params]);
 
   const handleDownload = () => {
     if (certificateRef.current) {
