@@ -2,13 +2,14 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Member, Event } from '@/lib/types';
 import { Leaf } from 'lucide-react';
+import React from 'react';
 
 interface CertificateProps {
   member: Member;
   event: Event;
 }
 
-export default function Certificate({ member, event }: CertificateProps) {
+const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event }, ref) => {
   const certificateImage = PlaceHolderImages.find((img) => img.id === 'certificate');
 
   if (!certificateImage) {
@@ -16,13 +17,14 @@ export default function Certificate({ member, event }: CertificateProps) {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50">
+    <div ref={ref} className="w-full max-w-2xl mx-auto aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50">
       <Image
         src={certificateImage.imageUrl}
         alt={certificateImage.description}
         fill
         className="object-cover"
         data-ai-hint={certificateImage.imageHint}
+        unoptimized // Necessary for html2canvas to render the image from another domain
       />
       <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center p-8 text-center text-foreground font-serif">
         <div className="flex items-center gap-3">
@@ -57,4 +59,8 @@ export default function Certificate({ member, event }: CertificateProps) {
       </div>
     </div>
   );
-}
+});
+
+Certificate.displayName = 'Certificate';
+
+export default Certificate;
