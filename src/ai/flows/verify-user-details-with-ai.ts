@@ -33,6 +33,7 @@ const prompt = ai.definePrompt({
   name: 'verifyUserDetailsWithAIPrompt',
   input: {schema: VerifyUserDetailsWithAIInputSchema},
   output: {schema: VerifyUserDetailsWithAIOutputSchema},
+  model: 'groq/llama3-8b-8192',
   prompt: `You are an AI assistant tasked with verifying user details for event participation.
 
   Based on the information provided, confirm the user's participation and role in the specified event. Provide a detailed verification result.
