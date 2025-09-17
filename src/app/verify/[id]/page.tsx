@@ -33,7 +33,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
       }
     }
     setLoading(false);
-  }, [params.id]);
+  }, [params]);
 
   const handleDownload = () => {
     if (certificateRef.current) {
