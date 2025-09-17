@@ -155,6 +155,8 @@ export default function AdminDashboard() {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Father's Name</TableHead>
+                    <TableHead>CNIC</TableHead>
                     <TableHead>Event</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -165,6 +167,8 @@ export default function AdminDashboard() {
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.id}</TableCell>
                       <TableCell>{member.userName}</TableCell>
+                      <TableCell>{member.fatherName}</TableCell>
+                      <TableCell>{member.cnic}</TableCell>
                       <TableCell>{member.event}</TableCell>
                       <TableCell><Badge variant="outline">{member.role}</Badge></TableCell>
                       <TableCell className="text-right">
@@ -187,6 +191,22 @@ export default function AdminDashboard() {
                                   <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="name" className="text-right">Name</Label>
                                     <Input id="name" defaultValue={member.userName} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                                    <Input id="fatherName" defaultValue={member.fatherName} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="cnic" className="text-right">CNIC</Label>
+                                    <Input id="cnic" defaultValue={member.cnic} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="event" className="text-right">Event</Label>
+                                    <Input id="event" defaultValue={member.event} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="role" className="text-right">Role</Label>
+                                    <Input id="role" defaultValue={member.role} className="col-span-3" />
                                   </div>
                                </div>
                                <DialogFooter>
@@ -213,6 +233,8 @@ export default function AdminDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Father's Name</TableHead>
+                    <TableHead>CNIC</TableHead>
                     <TableHead>Event</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -222,19 +244,54 @@ export default function AdminDashboard() {
                   {pendingMembers.map((member, index) => (
                     <TableRow key={index}>
                       <TableCell>{member.userName}</TableCell>
+                      <TableCell>{member.fatherName}</TableCell>
+                      <TableCell>{member.cnic}</TableCell>
                       <TableCell>{member.event}</TableCell>
                       <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                        <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Dialog>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
+                              <DialogTrigger asChild><DropdownMenuItem>Edit</DropdownMenuItem></DialogTrigger>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                           <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Edit Pending Member</DialogTitle>
+                              </DialogHeader>
+                               <div className="grid gap-4 py-4">
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="name" className="text-right">Name</Label>
+                                    <Input id="name" defaultValue={member.userName} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                                    <Input id="fatherName" defaultValue={member.fatherName} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="cnic" className="text-right">CNIC</Label>
+                                    <Input id="cnic" defaultValue={member.cnic} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="event" className="text-right">Event</Label>
+                                    <Input id="event" defaultValue={member.event} className="col-span-3" />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="role" className="text-right">Role</Label>
+                                    <Input id="role" defaultValue={member.role} className="col-span-3" />
+                                  </div>
+                               </div>
+                               <DialogFooter>
+                                <Button onClick={() => toast({title: "Changes Saved"})}>Save changes</Button>
+                               </DialogFooter>
+                           </DialogContent>
+                         </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -266,16 +323,40 @@ export default function AdminDashboard() {
                       <TableCell>{event.date}</TableCell>
                       <TableCell>{event.organizedBy}</TableCell>
                       <TableCell className="text-right">
-                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                         <Dialog>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DialogTrigger asChild><DropdownMenuItem>Edit</DropdownMenuItem></DialogTrigger>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                           <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Edit Event</DialogTitle>
+                              </DialogHeader>
+                               <div className="grid gap-4 py-4">
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="name" className="text-right">Name</Label>
+                                    <Input id="name" defaultValue={event.name} className="col-span-3" />
+                                  </div>
+                                   <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="date" className="text-right">Date</Label>
+                                    <Input id="date" defaultValue={event.date} className="col-span-3" />
+                                  </div>
+                                   <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="organizedBy" className="text-right">Organizer</Label>
+                                    <Input id="organizedBy" defaultValue={event.organizedBy} className="col-span-3" />
+                                  </div>
+                               </div>
+                               <DialogFooter>
+                                <Button onClick={() => toast({title: "Changes Saved"})}>Save changes</Button>
+                               </DialogFooter>
+                           </DialogContent>
+                         </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}
