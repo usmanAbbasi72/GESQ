@@ -47,8 +47,10 @@ export default function AdminDashboard() {
 
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
   const [newMemberName, setNewMemberName] = React.useState('');
+  const [newMemberFatherName, setNewMemberFatherName] = React.useState('');
+  const [newMemberCnic, setNewMemberCnic] = React.useState('');
   const [newMemberEvent, setNewMemberEvent] = React.useState('');
-  const [newMemberRole, setNewMemberRole] = React.useState<'Participant' | 'Volunteer' | 'Organizer'>('Participant');
+  const [newMemberRole, setNewMemberRole] = React.useState<'Participant' | 'Volunteer' | 'Organizer' | 'Supervisor'>('Participant');
   
   const [editingMember, setEditingMember] = React.useState<Member | null>(null);
   const [isEditMemberOpen, setIsEditMemberOpen] = React.useState(false);
@@ -123,15 +125,15 @@ export default function AdminDashboard() {
   };
 
   const handleAddMember = async () => {
-    if (!newMemberName || !newMemberEvent || !newMemberRole) {
+    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberEvent || !newMemberRole) {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
     }
     
     const newPendingMember = {
       userName: newMemberName,
-      fatherName: 'N/A', // Father's name and CNIC are not in the form
-      cnic: `N/A-${Math.random().toString(36).substring(7)}`, // Add a random value to avoid collisions on key
+      fatherName: newMemberFatherName,
+      cnic: newMemberCnic,
       event: newMemberEvent,
       role: newMemberRole,
     };
@@ -143,6 +145,8 @@ export default function AdminDashboard() {
         toast({ title: "Member Added", description: `${newMemberName} has been added to the pending list.`});
         // Reset form
         setNewMemberName('');
+        setNewMemberFatherName('');
+        setNewMemberCnic('');
         setNewMemberEvent('');
         setNewMemberRole('Participant');
     } catch (e) {
@@ -240,6 +244,14 @@ export default function AdminDashboard() {
                 <Label htmlFor="name" className="text-right">Name</Label>
                 <Input id="name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="col-span-3" />
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                <Input id="fatherName" value={newMemberFatherName} onChange={(e) => setNewMemberFatherName(e.target.value)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="cnic" className="text-right">CNIC</Label>
+                <Input id="cnic" value={newMemberCnic} onChange={(e) => setNewMemberCnic(e.target.value)} className="col-span-3" />
+              </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="event" className="text-right">Event</Label>
                 <Select onValueChange={setNewMemberEvent} value={newMemberEvent}>
@@ -263,6 +275,7 @@ export default function AdminDashboard() {
                     <SelectItem value="Participant">Participant</SelectItem>
                     <SelectItem value="Volunteer">Volunteer</SelectItem>
                     <SelectItem value="Organizer">Organizer</SelectItem>
+                    <SelectItem value="Supervisor">Supervisor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -459,6 +472,7 @@ export default function AdminDashboard() {
                     <SelectItem value="Participant">Participant</SelectItem>
                     <SelectItem value="Volunteer">Volunteer</SelectItem>
                     <SelectItem value="Organizer">Organizer</SelectItem>
+                    <SelectItem value="Supervisor">Supervisor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -513,6 +527,7 @@ export default function AdminDashboard() {
                     <SelectItem value="Participant">Participant</SelectItem>
                     <SelectItem value="Volunteer">Volunteer</SelectItem>
                     <SelectItem value="Organizer">Organizer</SelectItem>
+                    <SelectItem value="Supervisor">Supervisor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

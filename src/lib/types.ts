@@ -4,7 +4,7 @@ export interface Member {
   fatherName: string;
   cnic: string;
   event: string;
-  role: 'Participant' | 'Volunteer' | 'Organizer';
+  role: 'Participant' | 'Volunteer' | 'Organizer' | 'Supervisor';
   approved: boolean;
 }
 
