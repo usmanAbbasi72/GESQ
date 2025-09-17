@@ -14,6 +14,7 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VerifyPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const { toast } = useToast();
   const [member, setMember] = useState<Member | undefined>(undefined);
   const [event, setEvent] = useState<Event | undefined>(undefined);
@@ -21,14 +22,14 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
   const certificateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const foundMember = getMemberById(params.id);
+    const foundMember = getMemberById(id);
     setMember(foundMember);
     if (foundMember) {
       const foundEvent = getEventByName(foundMember.event);
       setEvent(foundEvent);
     }
     setLoading(false);
-  }, [params]);
+  }, [id]);
 
   const handleDownload = () => {
     if (certificateRef.current) {
@@ -66,7 +67,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
             <XCircle className="w-16 h-16 text-destructive" />
             <CardTitle className="text-2xl">Verification Failed</CardTitle>
             <CardDescription>
-              No record found for ID: <strong>{params.id}</strong>
+              No record found for ID: <strong>{id}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
