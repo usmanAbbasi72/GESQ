@@ -14,22 +14,26 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VerifyPage({ params }: { params: { id: string } }) {
-  const { id } = params;
   const { toast } = useToast();
   const [member, setMember] = useState<Member | undefined>(undefined);
   const [event, setEvent] = useState<Event | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const certificateRef = useRef<HTMLDivElement>(null);
+  const [id, setId] = useState<string>('');
 
   useEffect(() => {
-    const foundMember = getMemberById(id);
-    setMember(foundMember);
-    if (foundMember) {
-      const foundEvent = getEventByName(foundMember.event);
-      setEvent(foundEvent);
+    const currentId = params.id;
+    if (currentId) {
+      setId(currentId);
+      const foundMember = getMemberById(currentId);
+      setMember(foundMember);
+      if (foundMember) {
+        const foundEvent = getEventByName(foundMember.event);
+        setEvent(foundEvent);
+      }
     }
     setLoading(false);
-  }, [id]);
+  }, [params.id]);
 
   const handleDownload = () => {
     if (certificateRef.current) {
