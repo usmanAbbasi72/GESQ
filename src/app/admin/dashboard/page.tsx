@@ -21,12 +21,17 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [members, setMembers] = React.useState<Member[]>(initialMembers);
   const [pendingMembers, setPendingMembers] = React.useState<Omit<Member, 'id' | 'approved'>[]>(initialPendingMembers);
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
+  
+  const [newMemberName, setNewMemberName] = React.useState('');
+  const [newMemberEvent, setNewMemberEvent] = React.useState('');
+  const [newMemberRole, setNewMemberRole] = React.useState<'Participant' | 'Volunteer' | 'Organizer'>('Participant');
 
   const handleApprove = (pendingMember: Omit<Member, 'id' | 'approved'>) => {
     const newMember: Member = {
@@ -49,6 +54,29 @@ export default function AdminDashboard() {
     toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
   };
 
+  const handleAddMember = () => {
+    if (!newMemberName || !newMemberEvent || !newMemberRole) {
+      toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
+      return;
+    }
+    
+    const newPendingMember: Omit<Member, 'id' | 'approved'> = {
+      userName: newMemberName,
+      fatherName: 'N/A', // Father's name and CNIC are not in the form
+      cnic: `N/A-${Math.random().toString(36).substring(7)}`, // Add a random value to avoid collisions on key
+      event: newMemberEvent,
+      role: newMemberRole,
+    };
+
+    setPendingMembers([...pendingMembers, newPendingMember]);
+    setIsAddMemberOpen(false);
+    toast({ title: "Member Added", description: `${newMemberName} has been added to the pending list.`});
+    // Reset form
+    setNewMemberName('');
+    setNewMemberEvent('');
+    setNewMemberRole('Participant');
+  };
+
   return (
     <div className="container py-10">
       <div className="flex items-center justify-between mb-6">
@@ -67,24 +95,43 @@ export default function AdminDashboard() {
             <DialogHeader>
               <DialogTitle>Add New Member</DialogTitle>
               <DialogDescription>
-                Fill in the details to add a new member.
+                Fill in the details to add a new member. The member will be added to the pending list for approval.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" className="col-span-3" />
+                <Input id="name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="col-span-3" />
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="event" className="text-right">Event</Label>
-                <Input id="event" className="col-span-3" />
+                <Select onValueChange={setNewMemberEvent} value={newMemberEvent}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map(event => (
+                      <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="role" className="text-right">Role</Label>
+                 <Select onValueChange={(value) => setNewMemberRole(value as any)} value={newMemberRole}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Participant">Participant</SelectItem>
+                    <SelectItem value="Volunteer">Volunteer</SelectItem>
+                    <SelectItem value="Organizer">Organizer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => {
-                setIsAddMemberOpen(false);
-                toast({ title: "Member Added", description: "The new member has been added successfully."});
-              }}>Save Member</Button>
+              <Button onClick={handleAddMember}>Save Member</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
