@@ -12,9 +12,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { Member, Event } from '@/lib/types';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
+import { useParams } from 'next/navigation';
 
-export default function VerifyPage({ params }: { params: { id: string } }) {
+export default function VerifyPage() {
   const { toast } = useToast();
+  const params = useParams();
   const [member, setMember] = useState<Member | undefined>(undefined);
   const [event, setEvent] = useState<Event | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
   const [id, setId] = useState<string>('');
 
   useEffect(() => {
-    const currentId = params.id;
+    const currentId = Array.isArray(params.id) ? params.id[0] : params.id;
     if (currentId) {
       setId(currentId);
       const foundMember = getMemberById(currentId);
@@ -33,7 +35,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
       }
     }
     setLoading(false);
-  }, [params]);
+  }, [params.id]);
 
   const handleDownload = () => {
     if (certificateRef.current) {
