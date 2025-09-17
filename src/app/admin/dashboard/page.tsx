@@ -228,14 +228,15 @@ export default function AdminDashboard() {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
     }
-    const newEvent: Omit<Event, 'purpose'> = {
+    const newEvent: Event = {
       name: newEventName,
       date: newEventDate,
       organizedBy: newEventOrganizer,
+      purpose: '', // Ensuring all fields for Event type are present
     };
     try {
-      await addDoc(collection(db, "events"), { ...newEvent, purpose: '' });
-      setEvents([...events, { ...newEvent, purpose: '' }]);
+      const docRef = await addDoc(collection(db, "events"), newEvent);
+      setEvents([...events, { ...newEvent, name: newEvent.name }]); // Use newEvent.name for key if needed, or ensure response from DB gives an id.
       setIsAddEventOpen(false);
       toast({ title: "Event Added", description: `${newEventName} has been created.` });
       // Reset form
@@ -243,6 +244,7 @@ export default function AdminDashboard() {
       setNewEventDate('');
       setNewEventOrganizer('');
     } catch (e) {
+      console.error("Error adding event: ", e);
       toast({ title: 'Error', description: 'Failed to add event.', variant: 'destructive' });
     }
   };
