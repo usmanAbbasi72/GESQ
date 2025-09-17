@@ -1,11 +1,9 @@
 import { getMemberById, getEventByName } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CheckCircle2, XCircle, Home, User, Users, Calendar, Award, Bot, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, Home, User, Calendar, Award } from 'lucide-react';
 import Certificate from '@/components/certificate';
-import { verifyUserDetailsWithAI } from '@/ai/flows/verify-user-details-with-ai';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
@@ -37,15 +35,6 @@ export default async function VerifyPage({ params }: { params: { id: string } })
   }
 
   const event = getEventByName(member.event);
-  
-  const aiVerification = await verifyUserDetailsWithAI({
-    userName: member.userName,
-    fatherName: member.fatherName,
-    cnic: member.cnic,
-    event: member.event,
-    role: member.role,
-    eventDetails: event?.purpose || 'No event details available.',
-  });
 
   const detailItem = ({ label, value }: { label: string; value: string | undefined }) => (
     <div className="flex justify-between items-center text-sm">
@@ -95,14 +84,6 @@ export default async function VerifyPage({ params }: { params: { id: string } })
               </CardContent>
             </Card>
           </div>
-
-          <Alert className="bg-primary/5 border-primary/20">
-             <Sparkles className="h-4 w-4 !text-primary" />
-            <AlertTitle className="text-primary font-bold flex items-center gap-2"><Bot /> AI Verification</AlertTitle>
-            <AlertDescription className="text-foreground/80">
-              {aiVerification.verificationResult}
-            </AlertDescription>
-          </Alert>
           
           <Separator />
           
