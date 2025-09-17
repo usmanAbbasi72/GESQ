@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "certificate",
-      "description": "A blank certificate template.",
-      "imageUrl": "https://picsum.photos/seed/cert1/1200/800",
-      "imageHint": "certificate blank"
+      "description": "A professional certificate background with an environmental theme.",
+      "imageUrl": "https://picsum.photos/seed/env-cert/1200/800",
+      "imageHint": "forest landscape"
     }
   ]
 }
