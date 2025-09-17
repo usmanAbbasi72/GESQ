@@ -225,12 +225,12 @@ export default function AdminDashboard() {
       name: newEventName,
       date: newEventDate,
       organizedBy: newEventOrganizer,
-      purpose: '', // Ensuring all fields for Event type are present
+      purpose: '',
     };
     try {
       const docRef = await addDoc(collection(db, "events"), newEventData);
       const newEvent: Event = { ...newEventData, id: docRef.id };
-      setEvents([...events, newEvent]); 
+      setEvents(prevEvents => [...prevEvents, newEvent]); 
       setIsAddEventOpen(false);
       toast({ title: "Event Added", description: `${newEventName} has been created.` });
       // Reset form
