@@ -25,10 +25,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+type PendingMember = Omit<Member, 'id' | 'approved' | 'event'> & { originalCnic: string };
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [members, setMembers] = React.useState<Member[]>([]);
-  const [pendingMembers, setPendingMembers] = React.useState<(Omit<Member, 'id' | 'approved'> & { originalCnic: string })[]>([]);
+  const [pendingMembers, setPendingMembers] = React.useState<PendingMember[]>([]);
   const [events, setEvents] = React.useState<Event[]>([]);
   
   React.useEffect(() => {
@@ -54,7 +56,7 @@ export default function AdminDashboard() {
   const [editingMember, setEditingMember] = React.useState<Member | null>(null);
   const [isEditMemberOpen, setIsEditMemberOpen] = React.useState(false);
 
-  const [editingPendingMember, setEditingPendingMember] = React.useState<(Omit<Member, 'id' | 'approved'> & { originalCnic: string }) | null>(null);
+  const [editingPendingMember, setEditingPendingMember] = React.useState<PendingMember | null>(null);
   const [isEditPendingMemberOpen, setIsEditPendingMemberOpen] = React.useState(false);
 
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
@@ -66,41 +68,48 @@ export default function AdminDashboard() {
   const [newEventOrganizer, setNewEventOrganizer] = React.useState('');
 
 
-  const handleApprove = async (pendingMember: Omit<Member, 'id' | 'approved'>) => {
+  const handleApprove = async (pendingMember: PendingMember) => {
     try {
-      const newMemberId = `GES${String(members.length + 100 + pendingMembers.length).padStart(3, '0')}`;
+      // A simple way to generate a new ID. You might want a more robust solution.
+      const newMemberId = `GES${String(members.length + 101).padStart(3, '0')}`;
       const newMember: Member = {
-        ...(pendingMember as Omit<Member, 'id' | 'approved' | 'event'>),
+        userName: pendingMember.userName,
+        fatherName: pendingMember.fatherName,
+        cnic: pendingMember.cnic,
+        role: pendingMember.role,
         id: newMemberId,
         approved: true,
-        event: '',
+        event: '', // Initially no event
       };
-      await setDoc(doc(db, "members", newMemberId), newMember);
-      setMembers([...members, newMember]);
       
-      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.cnic));
+      await setDoc(doc(db, "members", newMemberId), newMember);
+      
+      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.originalCnic));
       const querySnapshot = await getDocs(q);
-      querySnapshot.forEach(async (doc) => {
-        await deleteDoc(doc.ref);
-      });
+      const deletePromises = querySnapshot.docs.map((document) => deleteDoc(document.ref));
+      await Promise.all(deletePromises);
 
-      setPendingMembers(pendingMembers.filter(m => m.cnic !== pendingMember.cnic));
+      setMembers(prev => [...prev, newMember]);
+      setPendingMembers(prev => prev.filter(m => m.originalCnic !== pendingMember.originalCnic));
+
       toast({ title: 'Member Approved', description: `${pendingMember.userName} has been approved.` });
     } catch(e) {
+      console.error("Error approving member:", e);
       toast({ title: 'Error', description: 'Failed to approve member.', variant: 'destructive' });
     }
   };
 
-  const handleReject = async (pendingMember: Omit<Member, 'id' | 'approved'>) => {
+  const handleReject = async (pendingMember: PendingMember) => {
     try {
-      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.cnic));
+      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.originalCnic));
       const querySnapshot = await getDocs(q);
-      querySnapshot.forEach(async (doc) => {
-        await deleteDoc(doc.ref);
-      });
-      setPendingMembers(pendingMembers.filter(m => m.cnic !== pendingMember.cnic));
+      const deletePromises = querySnapshot.docs.map((document) => deleteDoc(document.ref));
+      await Promise.all(deletePromises);
+
+      setPendingMembers(prev => prev.filter(m => m.originalCnic !== pendingMember.originalCnic));
       toast({ title: 'Member Rejected', description: `${pendingMember.userName} has been rejected.`, variant: 'destructive' });
     } catch (e) {
+      console.error("Error rejecting member:", e);
       toast({ title: 'Error', description: 'Failed to reject member.', variant: 'destructive' });
     }
   };
@@ -108,7 +117,7 @@ export default function AdminDashboard() {
   const handleDelete = async (member: Member) => {
     try {
       await deleteDoc(doc(db, "members", member.id));
-      setMembers(members.filter(m => m.id !== member.id));
+      setMembers(prev => prev.filter(m => m.id !== member.id));
       toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
     } catch (e) {
        toast({ title: 'Error', description: 'Failed to delete member.', variant: 'destructive' });
@@ -118,7 +127,7 @@ export default function AdminDashboard() {
   const handleDeleteEvent = async (event: Event) => {
     try {
       await deleteDoc(doc(db, "events", event.id));
-      setEvents(events.filter(e => e.id !== event.id));
+      setEvents(prev => prev.filter(e => e.id !== event.id));
       toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
     } catch(e) {
       toast({ title: 'Error', description: 'Failed to delete event.', variant: 'destructive' });
@@ -131,7 +140,7 @@ export default function AdminDashboard() {
       return;
     }
     
-    const newPendingMember = {
+    const newPendingMemberData = {
       userName: newMemberName,
       fatherName: newMemberFatherName,
       cnic: newMemberCnic,
@@ -139,16 +148,17 @@ export default function AdminDashboard() {
     };
     
     try {
-        await addDoc(collection(db, "pendingMembers"), newPendingMember);
-        setPendingMembers([...pendingMembers, { ...newPendingMember, originalCnic: newPendingMember.cnic }]);
+        await addDoc(collection(db, "pendingMembers"), newPendingMemberData);
+        setPendingMembers(prev => [...prev, { ...newPendingMemberData, originalCnic: newPendingMemberData.cnic }]);
         setIsAddMemberOpen(false);
-        toast({ title: "Member Added", description: `${newMemberName} has been added to the pending list.`});
+        toast({ title: "Member Added", description: `${newMemberName} is pending approval.`});
         // Reset form
         setNewMemberName('');
         setNewMemberFatherName('');
         setNewMemberCnic('');
         setNewMemberRole('Participant');
     } catch (e) {
+      console.error("Error adding member:", e);
       toast({ title: 'Error', description: 'Failed to add member.', variant: 'destructive' });
     }
   };
@@ -161,17 +171,18 @@ export default function AdminDashboard() {
   const handleUpdateMember = async () => {
     if (!editingMember) return;
     try {
-      await setDoc(doc(db, "members", editingMember.id), editingMember);
-      setMembers(members.map(m => (m.id === editingMember.id ? editingMember : m)));
+      await setDoc(doc(db, "members", editingMember.id), editingMember, { merge: true });
+      setMembers(prev => prev.map(m => (m.id === editingMember.id ? editingMember : m)));
       setIsEditMemberOpen(false);
       setEditingMember(null);
       toast({ title: "Changes Saved", description: `Details for ${editingMember.userName} have been updated.` });
     } catch(e) {
+      console.error("Error updating member:", e);
       toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
     }
   };
 
-  const handleOpenEditPendingMember = (member: Omit<Member, 'id' | 'approved'> & { originalCnic: string }) => {
+  const handleOpenEditPendingMember = (member: PendingMember) => {
     setEditingPendingMember({ ...member });
     setIsEditPendingMemberOpen(true);
   };
@@ -181,20 +192,26 @@ export default function AdminDashboard() {
     try {
       const q = query(collection(db, "pendingMembers"), where("cnic", "==", editingPendingMember.originalCnic));
       const querySnapshot = await getDocs(q);
-      const { originalCnic, ...memberToSave } = editingPendingMember;
       
       if (querySnapshot.empty) {
-        throw new Error("Pending member not found");
+        throw new Error("Pending member not found in database.");
       }
 
       const docRef = querySnapshot.docs[0].ref;
-      await setDoc(docRef, memberToSave);
+      const { originalCnic, ...memberToSave } = editingPendingMember;
 
-      setPendingMembers(pendingMembers.map(m => (m.originalCnic === editingPendingMember.originalCnic ? { ...memberToSave, originalCnic: memberToSave.cnic } : m)));
+      await setDoc(docRef, memberToSave, { merge: true });
+
+      setPendingMembers(prev => prev.map(m => 
+        m.originalCnic === editingPendingMember.originalCnic 
+        ? { ...memberToSave, originalCnic: memberToSave.cnic } 
+        : m
+      ));
       setIsEditPendingMemberOpen(false);
       setEditingPendingMember(null);
       toast({ title: "Changes Saved", description: `Details for ${editingPendingMember.userName} have been updated.` });
     } catch(e) {
+       console.error("Error updating pending member:", e);
        toast({ title: 'Error', description: `Failed to update member. ${e instanceof Error ? e.message : ''}`, variant: 'destructive' });
     }
   };
@@ -207,13 +224,13 @@ export default function AdminDashboard() {
   const handleUpdateEvent = async () => {
     if (!editingEvent) return;
      try {
-      const { id, ...eventToSave } = editingEvent;
-      await setDoc(doc(db, "events", id), eventToSave);
-      setEvents(events.map(e => (e.id === editingEvent.id ? editingEvent : e)));
+      await setDoc(doc(db, "events", editingEvent.id), editingEvent, { merge: true });
+      setEvents(prev => prev.map(e => (e.id === editingEvent.id ? editingEvent : e)));
       setIsEditEventOpen(false);
       setEditingEvent(null);
       toast({ title: "Changes Saved", description: `Details for ${editingEvent.name} have been updated.` });
     } catch(e) {
+      console.error("Error updating event:", e);
       toast({ title: 'Error', description: 'Failed to update event.', variant: 'destructive' });
     }
   };
@@ -223,11 +240,11 @@ export default function AdminDashboard() {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
     }
-    const newEventData: Omit<Event, 'id'> = {
+    const newEventData = {
       name: newEventName,
       date: newEventDate,
       organizedBy: newEventOrganizer,
-      purpose: '',
+      purpose: '', // Default purpose
     };
     try {
       const docRef = await addDoc(collection(db, "events"), newEventData);
@@ -357,6 +374,7 @@ export default function AdminDashboard() {
                     <TableHead>Father's Name</TableHead>
                     <TableHead>CNIC</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Event</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -368,6 +386,7 @@ export default function AdminDashboard() {
                       <TableCell>{member.fatherName}</TableCell>
                       <TableCell>{member.cnic}</TableCell>
                       <TableCell><Badge variant="outline">{member.role}</Badge></TableCell>
+                      <TableCell>{member.event || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -418,9 +437,9 @@ export default function AdminDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleApprove(member as any)}>Approve</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member as any)}>Reject</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -496,11 +515,12 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="event" className="text-right">Event</Label>
-                 <Select onValueChange={(value) => setEditingMember({...editingMember, event: value})} value={editingMember.event}>
+                 <Select onValueChange={(value) => setEditingMember(prev => prev ? {...prev, event: value} : null)} value={editingMember.event}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select an event" />
                   </SelectTrigger>
                   <SelectContent>
+                     <SelectItem value="">N/A</SelectItem>
                     {events.map(event => (
                       <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
                     ))}
@@ -509,7 +529,7 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">Role</Label>
-                <Select onValueChange={(value) => setEditingMember({...editingMember, role: value as any})} value={editingMember.role}>
+                <Select onValueChange={(value) => setEditingMember(prev => prev ? {...prev, role: value as any} : null)} value={editingMember.role}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -539,19 +559,19 @@ export default function AdminDashboard() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" value={editingPendingMember.userName} onChange={e => setEditingPendingMember({...editingPendingMember, userName: e.target.value})} className="col-span-3" />
+                <Input id="name" value={editingPendingMember.userName} onChange={e => setEditingPendingMember(prev => prev ? {...prev, userName: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                <Input id="fatherName" value={editingPendingMember.fatherName} onChange={e => setEditingPendingMember({...editingPendingMember, fatherName: e.target.value})} className="col-span-3" />
+                <Input id="fatherName" value={editingPendingMember.fatherName} onChange={e => setEditingPendingMember(prev => prev ? {...prev, fatherName: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="cnic" className="text-right">CNIC</Label>
-                <Input id="cnic" value={editingPendingMember.cnic} onChange={e => setEditingPendingMember({...editingPendingMember, cnic: e.target.value})} className="col-span-3" />
+                <Input id="cnic" value={editingPendingMember.cnic} onChange={e => setEditingPendingMember(prev => prev ? {...prev, cnic: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">Role</Label>
-                <Select onValueChange={(value) => setEditingPendingMember({...editingPendingMember, role: value as any})} value={editingPendingMember.role}>
+                <Select onValueChange={(value) => setEditingPendingMember(prev => prev ? {...prev, role: value as any} : null)} value={editingPendingMember.role}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -581,15 +601,15 @@ export default function AdminDashboard() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" value={editingEvent.name} onChange={(e) => setEditingEvent({...editingEvent, name: e.target.value })} className="col-span-3" />
+                <Input id="name" value={editingEvent.name} onChange={(e) => setEditingEvent(prev => prev ? {...prev, name: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">Date</Label>
-                <Input id="date" value={editingEvent.date} onChange={(e) => setEditingEvent({...editingEvent, date: e.target.value })} className="col-span-3" />
+                <Input id="date" type="date" value={editingEvent.date} onChange={(e) => setEditingEvent(prev => prev ? {...prev, date: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="organizedBy" className="text-right">Organizer</Label>
-                <Input id="organizedBy" value={editingEvent.organizedBy} onChange={(e) => setEditingEvent({...editingEvent, organizedBy: e.target.value })} className="col-span-3" />
+                <Input id="organizedBy" value={editingEvent.organizedBy} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizedBy: e.target.value} : null)} className="col-span-3" />
               </div>
             </div>
           )}

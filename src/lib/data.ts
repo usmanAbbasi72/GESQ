@@ -7,9 +7,9 @@ export async function getMembers(): Promise<Member[]> {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
 }
 
-export async function getPendingMembers(): Promise<Omit<Member, 'approved' | 'id'>[]> {
+export async function getPendingMembers(): Promise<(Omit<Member, 'approved' | 'id' | 'event'>)[]> {
     const querySnapshot = await getDocs(collection(db, "pendingMembers"));
-    return querySnapshot.docs.map(doc => doc.data() as Omit<Member, 'approved' | 'id'>);
+    return querySnapshot.docs.map(doc => doc.data() as Omit<Member, 'approved' | 'id' | 'event'>);
 }
 
 export async function getEvents(): Promise<Event[]> {
@@ -30,6 +30,7 @@ export async function getMemberById(id: string): Promise<Member | undefined> {
 }
 
 export async function getEventByName(name: string): Promise<Event | undefined> {
+    if (!name) return undefined;
     const q = query(collection(db, "events"), where("name", "==", name));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
