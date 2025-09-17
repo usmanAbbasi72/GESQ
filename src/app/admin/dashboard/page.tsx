@@ -60,6 +60,11 @@ export default function AdminDashboard() {
 
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const [isEditEventOpen, setIsEditEventOpen] = React.useState(false);
+  
+  const [isAddEventOpen, setIsAddEventOpen] = React.useState(false);
+  const [newEventName, setNewEventName] = React.useState('');
+  const [newEventDate, setNewEventDate] = React.useState('');
+  const [newEventOrganizer, setNewEventOrganizer] = React.useState('');
 
 
   const handleApprove = async (pendingMember: Omit<Member, 'id' | 'approved'>) => {
@@ -217,6 +222,30 @@ export default function AdminDashboard() {
       toast({ title: 'Error', description: 'Failed to update event.', variant: 'destructive' });
     }
   };
+  
+  const handleAddEvent = async () => {
+    if (!newEventName || !newEventDate || !newEventOrganizer) {
+      toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
+      return;
+    }
+    const newEvent: Omit<Event, 'purpose'> = {
+      name: newEventName,
+      date: newEventDate,
+      organizedBy: newEventOrganizer,
+    };
+    try {
+      await addDoc(collection(db, "events"), { ...newEvent, purpose: '' });
+      setEvents([...events, { ...newEvent, purpose: '' }]);
+      setIsAddEventOpen(false);
+      toast({ title: "Event Added", description: `${newEventName} has been created.` });
+      // Reset form
+      setNewEventName('');
+      setNewEventDate('');
+      setNewEventOrganizer('');
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to add event.', variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="container py-10">
@@ -225,66 +254,101 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage members and events for GreenPass.</p>
         </div>
-        <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add New Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Member</DialogTitle>
-              <DialogDescription>
-                Fill in the details to add a new member. The member will be added to the pending list for approval.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="col-span-3" />
+        <div className="flex gap-2">
+          <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add New Member
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Member</DialogTitle>
+                <DialogDescription>
+                  Fill in the details to add a new member. The member will be added to the pending list for approval.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Name</Label>
+                  <Input id="name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                  <Input id="fatherName" value={newMemberFatherName} onChange={(e) => setNewMemberFatherName(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="cnic" className="text-right">CNIC</Label>
+                  <Input id="cnic" value={newMemberCnic} onChange={(e) => setNewMemberCnic(e.target.value)} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="event" className="text-right">Event</Label>
+                  <Select onValueChange={setNewMemberEvent} value={newMemberEvent}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select an event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.map(event => (
+                        <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right">Role</Label>
+                   <Select onValueChange={(value) => setNewMemberRole(value as any)} value={newMemberRole}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Participant">Participant</SelectItem>
+                      <SelectItem value="Volunteer">Volunteer</SelectItem>
+                      <SelectItem value="Organizer">Organizer</SelectItem>
+                      <SelectItem value="Supervisor">Supervisor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                <Input id="fatherName" value={newMemberFatherName} onChange={(e) => setNewMemberFatherName(e.target.value)} className="col-span-3" />
+              <DialogFooter>
+                <Button onClick={handleAddMember}>Save Member</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add New Event
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Event</DialogTitle>
+                <DialogDescription>
+                  Fill in the details to create a new event.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="event-name" className="text-right">Name</Label>
+                  <Input id="event-name" value={newEventName} onChange={(e) => setNewEventName(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="event-date" className="text-right">Date</Label>
+                  <Input id="event-date" type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="event-organizer" className="text-right">Organizer</Label>
+                  <Input id="event-organizer" value={newEventOrganizer} onChange={(e) => setNewEventOrganizer(e.target.value)} className="col-span-3" />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="cnic" className="text-right">CNIC</Label>
-                <Input id="cnic" value={newMemberCnic} onChange={(e) => setNewMemberCnic(e.target.value)} className="col-span-3" />
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="event" className="text-right">Event</Label>
-                <Select onValueChange={setNewMemberEvent} value={newMemberEvent}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select an event" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {events.map(event => (
-                      <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="role" className="text-right">Role</Label>
-                 <Select onValueChange={(value) => setNewMemberRole(value as any)} value={newMemberRole}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Participant">Participant</SelectItem>
-                    <SelectItem value="Volunteer">Volunteer</SelectItem>
-                    <SelectItem value="Organizer">Organizer</SelectItem>
-                    <SelectItem value="Supervisor">Supervisor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleAddMember}>Save Member</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button onClick={handleAddEvent}>Save Event</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="members">
