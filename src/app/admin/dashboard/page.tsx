@@ -117,12 +117,8 @@ export default function AdminDashboard() {
   
   const handleDeleteEvent = async (event: Event) => {
     try {
-      const q = query(collection(db, "events"), where("name", "==", event.name));
-      const querySnapshot = await getDocs(q);
-      querySnapshot.forEach(async (doc) => {
-        await deleteDoc(doc.ref);
-      });
-      setEvents(events.filter(e => e.name !== event.name));
+      await deleteDoc(doc(db, "events", event.id));
+      setEvents(events.filter(e => e.id !== event.id));
       toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
     } catch(e) {
       toast({ title: 'Error', description: 'Failed to delete event.', variant: 'destructive' });
@@ -209,12 +205,9 @@ export default function AdminDashboard() {
   const handleUpdateEvent = async () => {
     if (!editingEvent) return;
      try {
-      const q = query(collection(db, "events"), where("name", "==", editingEvent.name));
-      const querySnapshot = await getDocs(q);
-      querySnapshot.forEach(async (doc) => {
-        await setDoc(doc.ref, editingEvent);
-      });
-      setEvents(events.map(e => (e.name === editingEvent.name ? editingEvent : e)));
+      const { id, ...eventToSave } = editingEvent;
+      await setDoc(doc(db, "events", id), eventToSave);
+      setEvents(events.map(e => (e.id === editingEvent.id ? editingEvent : e)));
       setIsEditEventOpen(false);
       setEditingEvent(null);
       toast({ title: "Changes Saved", description: `Details for ${editingEvent.name} have been updated.` });
@@ -228,15 +221,16 @@ export default function AdminDashboard() {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
     }
-    const newEvent: Event = {
+    const newEventData: Omit<Event, 'id'> = {
       name: newEventName,
       date: newEventDate,
       organizedBy: newEventOrganizer,
       purpose: '', // Ensuring all fields for Event type are present
     };
     try {
-      const docRef = await addDoc(collection(db, "events"), newEvent);
-      setEvents([...events, { ...newEvent, name: newEvent.name }]); // Use newEvent.name for key if needed, or ensure response from DB gives an id.
+      const docRef = await addDoc(collection(db, "events"), newEventData);
+      const newEvent: Event = { ...newEventData, id: docRef.id };
+      setEvents([...events, newEvent]); 
       setIsAddEventOpen(false);
       toast({ title: "Event Added", description: `${newEventName} has been created.` });
       // Reset form
@@ -292,7 +286,7 @@ export default function AdminDashboard() {
                     </SelectTrigger>
                     <SelectContent>
                       {events.map(event => (
-                        <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
+                        <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -470,7 +464,7 @@ export default function AdminDashboard() {
                 </TableHeader>
                 <TableBody>
                   {events.map((event) => (
-                    <TableRow key={event.name}>
+                    <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.name}</TableCell>
                       <TableCell>{event.date}</TableCell>
                       <TableCell>{event.organizedBy}</TableCell>
@@ -523,7 +517,7 @@ export default function AdminDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     {events.map(event => (
-                      <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
+                      <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -578,7 +572,7 @@ export default function AdminDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     {events.map(event => (
-                      <SelectItem key={event.name} value={event.name}>{event.name}</SelectItem>
+                      <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

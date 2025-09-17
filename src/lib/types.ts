@@ -9,6 +9,7 @@ export interface Member {
 }
 
 export interface Event {
+  id: string;
   name: string;
   organizedBy: string;
   date: string;
