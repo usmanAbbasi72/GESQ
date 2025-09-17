@@ -28,7 +28,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
       setEvent(foundEvent);
     }
     setLoading(false);
-  }, [params.id]);
+  }, [params]);
 
   const handleDownload = () => {
     if (certificateRef.current) {
