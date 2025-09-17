@@ -1,0 +1,126 @@
+import { getMemberById, getEventByName } from '@/lib/data';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { CheckCircle2, XCircle, Home, User, Users, Calendar, Award, Bot, Sparkles } from 'lucide-react';
+import Certificate from '@/components/certificate';
+import { verifyUserDetailsWithAI } from '@/ai/flows/verify-user-details-with-ai';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+
+export default async function VerifyPage({ params }: { params: { id: string } }) {
+  const member = getMemberById(params.id);
+
+  if (!member) {
+    return (
+      <div className="container py-10">
+        <Card className="max-w-md mx-auto">
+          <CardHeader className="items-center text-center">
+            <XCircle className="w-16 h-16 text-destructive" />
+            <CardTitle className="text-2xl">Verification Failed</CardTitle>
+            <CardDescription>
+              No record found for ID: <strong>{params.id}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button asChild>
+              <Link href="/">
+                <Home className="mr-2 h-4 w-4" />
+                Go to Homepage
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const event = getEventByName(member.event);
+  
+  const aiVerification = await verifyUserDetailsWithAI({
+    userName: member.userName,
+    fatherName: member.fatherName,
+    cnic: member.cnic,
+    event: member.event,
+    role: member.role,
+    eventDetails: event?.purpose || 'No event details available.',
+  });
+
+  const detailItem = ({ label, value }: { label: string; value: string | undefined }) => (
+    <div className="flex justify-between items-center text-sm">
+      <p className="text-muted-foreground">{label}</p>
+      <p className="font-semibold text-right">{value}</p>
+    </div>
+  );
+
+  return (
+    <div className="container py-10">
+      <Card className="max-w-3xl mx-auto">
+        <CardHeader className="items-center text-center">
+          <CheckCircle2 className="w-16 h-16 text-primary" />
+          <CardTitle className="text-2xl">Verification Successful</CardTitle>
+          <CardDescription>
+            This certificate is authentic and verified.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="flex-row items-center gap-2 space-y-0 pb-2">
+                <User className="w-5 h-5 text-primary" />
+                <CardTitle className="text-lg">Member Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {detailItem({ label: 'Name', value: member.userName })}
+                {detailItem({ label: 'Father\'s Name', value: member.fatherName })}
+                {detailItem({ label: 'CNIC', value: member.cnic })}
+                {detailItem({ label: 'Verification ID', value: member.id })}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex-row items-center gap-2 space-y-0 pb-2">
+                <Calendar className="w-5 h-5 text-primary" />
+                <CardTitle className="text-lg">Event Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {detailItem({ label: 'Event', value: event?.name })}
+                {detailItem({ label: 'Date', value: event?.date ? new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A' })}
+                <div className="flex justify-between items-center text-sm">
+                  <p className="text-muted-foreground">Role</p>
+                  <Badge variant="secondary">{member.role}</Badge>
+                </div>
+                {detailItem({ label: 'Organized By', value: event?.organizedBy })}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Alert className="bg-primary/5 border-primary/20">
+             <Sparkles className="h-4 w-4 !text-primary" />
+            <AlertTitle className="text-primary font-bold flex items-center gap-2"><Bot /> AI Verification</AlertTitle>
+            <AlertDescription className="text-foreground/80">
+              {aiVerification.verificationResult}
+            </AlertDescription>
+          </Alert>
+          
+          <Separator />
+          
+          <div className="space-y-2 text-center">
+             <h3 className="text-xl font-semibold flex items-center justify-center gap-2"><Award className="text-primary"/> Digital Certificate</h3>
+          </div>
+          {event && <Certificate member={member} event={event} />}
+
+          <div className="text-center pt-4">
+            <Button asChild variant="outline">
+              <Link href="/">
+                <Home className="mr-2 h-4 w-4" />
+                Back to Homepage
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
