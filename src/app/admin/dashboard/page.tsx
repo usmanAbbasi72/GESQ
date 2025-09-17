@@ -49,7 +49,6 @@ export default function AdminDashboard() {
   const [newMemberName, setNewMemberName] = React.useState('');
   const [newMemberFatherName, setNewMemberFatherName] = React.useState('');
   const [newMemberCnic, setNewMemberCnic] = React.useState('');
-  const [newMemberEvent, setNewMemberEvent] = React.useState('');
   const [newMemberRole, setNewMemberRole] = React.useState<'Participant' | 'Volunteer' | 'Organizer' | 'Supervisor'>('Participant');
   
   const [editingMember, setEditingMember] = React.useState<Member | null>(null);
@@ -126,7 +125,7 @@ export default function AdminDashboard() {
   };
 
   const handleAddMember = async () => {
-    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberEvent || !newMemberRole) {
+    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberRole) {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
     }
@@ -135,7 +134,7 @@ export default function AdminDashboard() {
       userName: newMemberName,
       fatherName: newMemberFatherName,
       cnic: newMemberCnic,
-      event: newMemberEvent,
+      event: '',
       role: newMemberRole,
     };
     
@@ -148,7 +147,6 @@ export default function AdminDashboard() {
         setNewMemberName('');
         setNewMemberFatherName('');
         setNewMemberCnic('');
-        setNewMemberEvent('');
         setNewMemberRole('Participant');
     } catch (e) {
       toast({ title: 'Error', description: 'Failed to add member.', variant: 'destructive' });
@@ -278,19 +276,6 @@ export default function AdminDashboard() {
                   <Label htmlFor="cnic" className="text-right">CNIC</Label>
                   <Input id="cnic" value={newMemberCnic} onChange={(e) => setNewMemberCnic(e.target.value)} className="col-span-3" />
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="event" className="text-right">Event</Label>
-                  <Select onValueChange={setNewMemberEvent} value={newMemberEvent}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select an event" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {events.map(event => (
-                        <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="role" className="text-right">Role</Label>
                    <Select onValueChange={(value) => setNewMemberRole(value as any)} value={newMemberRole}>
@@ -367,7 +352,6 @@ export default function AdminDashboard() {
                     <TableHead>Name</TableHead>
                     <TableHead>Father's Name</TableHead>
                     <TableHead>CNIC</TableHead>
-                    <TableHead>Event</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -379,7 +363,6 @@ export default function AdminDashboard() {
                       <TableCell>{member.userName}</TableCell>
                       <TableCell>{member.fatherName}</TableCell>
                       <TableCell>{member.cnic}</TableCell>
-                      <TableCell>{member.event}</TableCell>
                       <TableCell><Badge variant="outline">{member.role}</Badge></TableCell>
                       <TableCell className="text-right">
                           <DropdownMenu>
@@ -413,7 +396,6 @@ export default function AdminDashboard() {
                     <TableHead>Name</TableHead>
                     <TableHead>Father's Name</TableHead>
                     <TableHead>CNIC</TableHead>
-                    <TableHead>Event</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -424,7 +406,6 @@ export default function AdminDashboard() {
                       <TableCell>{member.userName}</TableCell>
                       <TableCell>{member.fatherName}</TableCell>
                       <TableCell>{member.cnic}</TableCell>
-                      <TableCell>{member.event}</TableCell>
                       <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                        <TableCell className="text-right">
                           <DropdownMenu>
