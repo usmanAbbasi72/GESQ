@@ -7,25 +7,20 @@ import { ref, set, remove, push, onValue } from 'firebase/database';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
+
+type DashboardView = 'members' | 'pending' | 'events' | 'settings';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -33,7 +28,8 @@ export default function AdminDashboard() {
   const [pendingMembers, setPendingMembers] = React.useState<PendingMember[]>([]);
   const [events, setEvents] = React.useState<Event[]>([]);
   const [dbStatus, setDbStatus] = React.useState(false);
-  
+  const [view, setView] = React.useState<DashboardView>('members');
+
   React.useEffect(() => {
     const loadData = async () => {
       try {
@@ -285,128 +281,11 @@ export default function AdminDashboard() {
       toast({ title: 'Error', description: 'Failed to add event.', variant: 'destructive' });
     }
   };
-
-  return (
-    <div className="container py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-4">
-             <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
-             <div className="flex items-center gap-2">
-                <span className={`h-3 w-3 rounded-full ${dbStatus ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                <span className="text-sm font-medium text-muted-foreground">{dbStatus ? 'Connected' : 'Disconnected'}</span>
-              </div>
-          </div>
-          <p className="text-muted-foreground">Manage members and events for GreenPass.</p>
-        </div>
-        <div className="flex gap-2">
-          <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add New Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Member</DialogTitle>
-                <DialogDescription>
-                  Fill in the details to add a new member. The member will be added to the pending list for approval.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">Name</Label>
-                  <Input id="name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                  <Input id="fatherName" value={newMemberFatherName} onChange={(e) => setNewMemberFatherName(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="cnic" className="text-right">CNIC</Label>
-                  <Input id="cnic" value={newMemberCnic} onChange={(e) => setNewMemberCnic(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">Role</Label>
-                   <Select onValueChange={(value) => setNewMemberRole(value as any)} value={newMemberRole}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Participant">Participant</SelectItem>
-                      <SelectItem value="Volunteer">Volunteer</SelectItem>
-                      <SelectItem value="Organizer">Organizer</SelectItem>
-                      <SelectItem value="Supervisor">Supervisor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="event-add-member" className="text-right">Event</Label>
-                   <Select onValueChange={(value) => setNewMemberEvent(value)} value={newMemberEvent}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select an event" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {events.map(event => (
-                        <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleAddMember}>Save Member</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add New Event
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Event</DialogTitle>
-                <DialogDescription>
-                  Fill in the details to create a new event.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="event-name" className="text-right">Name</Label>
-                  <Input id="event-name" value={newEventName} onChange={(e) => setNewEventName(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="event-date" className="text-right">Date</Label>
-                  <Input id="event-date" type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="event-organizer" className="text-right">Organizer</Label>
-                  <Input id="event-organizer" value={newEventOrganizer} onChange={(e) => setNewEventOrganizer(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="event-cert-url" className="text-right">Certificate URL</Label>
-                  <Input id="event-cert-url" value={newEventCertificateUrl} onChange={(e) => setNewEventCertificateUrl(e.target.value)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleAddEvent}>Save Event</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      <Tabs defaultValue="members">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="members">Approved Members</TabsTrigger>
-          <TabsTrigger value="pending">Pending Members</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
-        </TabsList>
-        <TabsContent value="members">
+  
+  const renderContent = () => {
+    switch(view) {
+      case 'members':
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Approved Members</CardTitle>
@@ -452,8 +331,9 @@ export default function AdminDashboard() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="pending">
+        );
+      case 'pending':
+        return (
            <Card>
             <CardHeader>
               <CardTitle>Pending Members</CardTitle>
@@ -498,8 +378,9 @@ export default function AdminDashboard() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="events">
+        );
+      case 'events':
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Events</CardTitle>
@@ -541,9 +422,186 @@ export default function AdminDashboard() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-      
+        );
+        case 'settings':
+          return (
+             <Card>
+                <CardHeader>
+                  <CardTitle>Settings</CardTitle>
+                  <CardDescription>Application settings and database status.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-3 w-3 rounded-full ${dbStatus ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span className="text-sm font-medium">Database Status: {dbStatus ? 'Connected' : 'Disconnected'}</span>
+                  </div>
+                </CardContent>
+              </Card>
+          )
+    }
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+            <SidebarTrigger/>
+            <h1 className="text-xl font-semibold font-headline">Admin Panel</h1>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => setView('members')} isActive={view === 'members'}>
+                <Users/>
+                Approved Members
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => setView('pending')} isActive={view === 'pending'}>
+                <CheckSquare />
+                Pending Members
+                {pendingMembers.length > 0 && <Badge className="ml-auto">{pendingMembers.length}</Badge>}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => setView('events')} isActive={view === 'events'}>
+                <Calendar />
+                Events
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+           <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setView('settings')} isActive={view === 'settings'}>
+                    <Settings />
+                    Settings
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+           </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <div className="container py-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold font-headline">
+                {view === 'members' && 'Approved Members'}
+                {view === 'pending' && 'Pending Members'}
+                {view === 'events' && 'Events'}
+                {view === 'settings' && 'Settings'}
+              </h1>
+              <p className="text-muted-foreground">Manage members and events for GreenPass.</p>
+            </div>
+            <div className="flex gap-2">
+              <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add New Member
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Member</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details to add a new member. The member will be added to the pending list for approval.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                     <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="name" className="text-right">Name</Label>
+                      <Input id="name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                      <Input id="fatherName" value={newMemberFatherName} onChange={(e) => setNewMemberFatherName(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="cnic" className="text-right">CNIC</Label>
+                      <Input id="cnic" value={newMemberCnic} onChange={(e) => setNewMemberCnic(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="role" className="text-right">Role</Label>
+                       <Select onValueChange={(value) => setNewMemberRole(value as any)} value={newMemberRole}>
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Participant">Participant</SelectItem>
+                          <SelectItem value="Volunteer">Volunteer</SelectItem>
+                          <SelectItem value="Organizer">Organizer</SelectItem>
+                          <SelectItem value="Supervisor">Supervisor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="event-add-member" className="text-right">Event</Label>
+                       <Select onValueChange={(value) => setNewMemberEvent(value)} value={newMemberEvent}>
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select an event" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {events.map(event => (
+                            <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleAddMember}>Save Member</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add New Event
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Event</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details to create a new event.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="event-name" className="text-right">Name</Label>
+                      <Input id="event-name" value={newEventName} onChange={(e) => setNewEventName(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="event-date" className="text-right">Date</Label>
+                      <Input id="event-date" type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="event-organizer" className="text-right">Organizer</Label>
+                      <Input id="event-organizer" value={newEventOrganizer} onChange={(e) => setNewEventOrganizer(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="event-cert-url" className="text-right">Certificate URL</Label>
+                      <Input id="event-cert-url" value={newEventCertificateUrl} onChange={(e) => setNewEventCertificateUrl(e.target.value)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleAddEvent}>Save Event</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+          {renderContent()}
+        </div>
+      </SidebarInset>
+      </div>
+
       {/* Edit Approved Member Dialog */}
       <Dialog open={isEditMemberOpen} onOpenChange={setIsEditMemberOpen}>
         <DialogContent>
@@ -687,6 +745,6 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </SidebarProvider>
   );
 }

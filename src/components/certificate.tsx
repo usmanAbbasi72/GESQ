@@ -3,6 +3,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Member, Event } from '@/lib/types';
 import { Leaf } from 'lucide-react';
 import React from 'react';
+import { QRCodeDisplay } from './qr-code-display';
 
 interface CertificateProps {
   member: Member;
@@ -16,6 +17,8 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   if (!certificateImage) {
     return null;
   }
+  
+  const verificationUrl = typeof window !== 'undefined' ? `${window.location.origin}/verify/${member.id}` : '';
 
   return (
     <div ref={ref} className="w-full max-w-2xl mx-auto aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50">
@@ -52,9 +55,16 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
             <p className="font-bold border-t border-foreground pt-1">Event Date</p>
             <p>{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
-          <div>
-            <p className="font-bold border-t border-foreground pt-1">Verification ID</p>
+
+          <div className="flex flex-col items-center">
+            {verificationUrl && <QRCodeDisplay url={verificationUrl} />}
+            <p className="font-bold border-t border-foreground pt-1 mt-1">Verification ID</p>
             <p>{member.id}</p>
+          </div>
+
+          <div>
+             <p className="font-bold border-t border-foreground pt-1">Organized By</p>
+             <p>{event.organizedBy}</p>
           </div>
         </div>
       </div>
