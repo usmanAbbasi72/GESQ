@@ -218,7 +218,7 @@ export default function AdminDashboard() {
       toast({ title: "Changes Saved", description: `Details for ${editingPendingMember.userName} have been updated.` });
     } catch(e) {
        console.error("Error updating pending member:", e);
-       toast({ title: 'Error', description: `Failed to update member. ${e instanceof Error ? e.message : ''}`, variant: 'destructive' });
+       toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
     }
   };
   
