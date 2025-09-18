@@ -446,10 +446,7 @@ export default function AdminDashboard() {
       <div className="flex min-h-screen">
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <SidebarTrigger/>
-            <h1 className="text-xl font-semibold font-headline">Admin Panel</h1>
-          </div>
+          <h1 className="text-xl font-semibold font-headline">Admin Panel</h1>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -488,14 +485,17 @@ export default function AdminDashboard() {
       <SidebarInset>
         <div className="container py-10">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold font-headline">
-                {view === 'members' && 'Approved Members'}
-                {view === 'pending' && 'Pending Members'}
-                {view === 'events' && 'Events'}
-                {view === 'settings' && 'Settings'}
-              </h1>
-              <p className="text-muted-foreground">Manage members and events for GreenPass.</p>
+            <div className="flex items-center gap-2">
+              <SidebarTrigger />
+              <div>
+                <h1 className="text-3xl font-bold font-headline">
+                  {view === 'members' && 'Approved Members'}
+                  {view === 'pending' && 'Pending Members'}
+                  {view === 'events' && 'Events'}
+                  {view === 'settings' && 'Settings'}
+                </h1>
+                <p className="text-muted-foreground">Manage members and events for GreenPass.</p>
+              </div>
             </div>
             <div className="flex gap-2">
               <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
