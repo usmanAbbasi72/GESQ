@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { getMembers as fetchMembers, getEvents as fetchEvents, getPendingMembers as fetchPendingMembers } from '@/lib/data';
 import { db } from '@/lib/firebase';
-import { ref, set, remove, push } from 'firebase/database';
+import { ref, set, remove, push, onValue } from 'firebase/database';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [members, setMembers] = React.useState<Member[]>([]);
   const [pendingMembers, setPendingMembers] = React.useState<PendingMember[]>([]);
   const [events, setEvents] = React.useState<Event[]>([]);
+  const [dbStatus, setDbStatus] = React.useState(false);
   
   React.useEffect(() => {
     const loadData = async () => {
@@ -45,6 +46,15 @@ export default function AdminDashboard() {
       setEvents(eventsData);
     };
     loadData();
+
+    const connectedRef = ref(db, '.info/connected');
+    const unsubscribe = onValue(connectedRef, (snap) => {
+      setDbStatus(snap.val() === true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
@@ -269,7 +279,13 @@ export default function AdminDashboard() {
     <div className="container py-10">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+          <div className="flex items-center gap-4">
+             <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+             <div className="flex items-center gap-2">
+                <span className={`h-3 w-3 rounded-full ${dbStatus ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span className="text-sm font-medium text-muted-foreground">{dbStatus ? 'Connected' : 'Disconnected'}</span>
+              </div>
+          </div>
           <p className="text-muted-foreground">Manage members and events for GreenPass.</p>
         </div>
         <div className="flex gap-2">
