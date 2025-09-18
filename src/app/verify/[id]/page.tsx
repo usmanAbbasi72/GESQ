@@ -6,6 +6,7 @@ import { CheckCircle2, XCircle, Home, User, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Member, Event } from '@/lib/types';
 import { CertificateDisplay } from '@/components/certificate-display';
+import { headers } from 'next/headers';
 
 async function getMemberData(id: string): Promise<{ member: Member | undefined; event: Event | undefined }> {
   const member = await getMemberById(id);
@@ -19,6 +20,12 @@ async function getMemberData(id: string): Promise<{ member: Member | undefined; 
 export default async function VerifyPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const { member, event } = await getMemberData(id);
+
+  const headersList = headers();
+  const host = headersList.get('host') || '';
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const verificationUrl = `${protocol}://${host}/verify/${id}`;
+
 
   if (!member) {
     return (
@@ -93,7 +100,7 @@ export default async function VerifyPage({ params }: { params: { id: string } })
             </Card>
           </div>
           
-          {event && <CertificateDisplay member={member} event={event} />}
+          {event && <CertificateDisplay member={member} event={event} verificationUrl={verificationUrl} />}
 
           <div className="text-center pt-4 flex justify-center">
              <Button asChild variant="outline">

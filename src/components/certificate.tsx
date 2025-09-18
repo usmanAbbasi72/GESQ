@@ -8,17 +8,16 @@ import { QRCodeDisplay } from './qr-code-display';
 interface CertificateProps {
   member: Member;
   event: Event;
+  verificationUrl: string;
 }
 
-const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event }, ref) => {
+const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event, verificationUrl }, ref) => {
   const fallbackImage = PlaceHolderImages.find((img) => img.id === 'certificate');
   const certificateImage = event.certificateUrl || fallbackImage?.imageUrl;
 
   if (!certificateImage) {
     return null;
   }
-  
-  const verificationUrl = typeof window !== 'undefined' ? `${window.location.origin}/verify/${member.id}` : '';
 
   return (
     <div ref={ref} className="w-full max-w-2xl mx-auto aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50">

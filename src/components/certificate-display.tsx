@@ -12,9 +12,10 @@ import type { Member, Event } from '@/lib/types';
 interface CertificateDisplayProps {
   member: Member;
   event: Event;
+  verificationUrl: string;
 }
 
-export function CertificateDisplay({ member, event }: CertificateDisplayProps) {
+export function CertificateDisplay({ member, event, verificationUrl }: CertificateDisplayProps) {
   const { toast } = useToast();
   const certificateRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +47,7 @@ export function CertificateDisplay({ member, event }: CertificateDisplayProps) {
           <Award className="text-primary"/> Digital Certificate
         </h3>
       </div>
-      <Certificate member={member} event={event} ref={certificateRef} />
+      <Certificate member={member} event={event} verificationUrl={verificationUrl} ref={certificateRef} />
       <div className="text-center pt-4 flex justify-center">
         <Button onClick={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
