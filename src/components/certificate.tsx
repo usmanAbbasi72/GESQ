@@ -10,7 +10,8 @@ interface CertificateProps {
 }
 
 const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event }, ref) => {
-  const certificateImage = PlaceHolderImages.find((img) => img.id === 'certificate');
+  const fallbackImage = PlaceHolderImages.find((img) => img.id === 'certificate');
+  const certificateImage = event.certificateUrl || fallbackImage?.imageUrl;
 
   if (!certificateImage) {
     return null;
@@ -19,11 +20,11 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   return (
     <div ref={ref} className="w-full max-w-2xl mx-auto aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50">
       <Image
-        src={certificateImage.imageUrl}
-        alt={certificateImage.description}
+        src={certificateImage}
+        alt={event.name || "Certificate background"}
         fill
         className="object-cover"
-        data-ai-hint={certificateImage.imageHint}
+        data-ai-hint="certificate background"
         unoptimized // Necessary for html2canvas to render the image from another domain
       />
       <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center p-8 text-center text-foreground font-serif">

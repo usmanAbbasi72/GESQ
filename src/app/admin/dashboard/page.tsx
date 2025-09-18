@@ -36,14 +36,19 @@ export default function AdminDashboard() {
   
   React.useEffect(() => {
     const loadData = async () => {
-      const [membersData, pendingData, eventsData] = await Promise.all([
-        fetchMembers(),
-        fetchPendingMembers(),
-        fetchEvents(),
-      ]);
-      setMembers(membersData);
-      setPendingMembers(pendingData);
-      setEvents(eventsData);
+      try {
+        const [membersData, pendingData, eventsData] = await Promise.all([
+          fetchMembers(),
+          fetchPendingMembers(),
+          fetchEvents(),
+        ]);
+        setMembers(membersData);
+        setPendingMembers(pendingData);
+        setEvents(eventsData);
+      } catch (error) {
+        console.error("Error loading data: ", error);
+        toast({ title: 'Error Loading Data', description: 'Could not fetch data from the database. Please check your connection and security rules.', variant: 'destructive' });
+      }
     };
     loadData();
 
@@ -55,7 +60,7 @@ export default function AdminDashboard() {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [toast]);
 
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
   const [newMemberName, setNewMemberName] = React.useState('');
@@ -77,10 +82,11 @@ export default function AdminDashboard() {
   const [newEventName, setNewEventName] = React.useState('');
   const [newEventDate, setNewEventDate] = React.useState('');
   const [newEventOrganizer, setNewEventOrganizer] = React.useState('');
+  const [newEventCertificateUrl, setNewEventCertificateUrl] = React.useState('');
 
   const handleApprove = async (pendingMember: PendingMember) => {
     try {
-      const newMemberId = `GES${String(members.length + 101).padStart(3, '0')}`;
+      const newMemberId = `GES${String(members.length + pendingMembers.length + 101).padStart(3, '0')}`;
       const newMember: Omit<Member, 'id'> = {
         userName: pendingMember.userName,
         fatherName: pendingMember.fatherName,
@@ -257,6 +263,7 @@ export default function AdminDashboard() {
       date: newEventDate,
       organizedBy: newEventOrganizer,
       purpose: '', // Default purpose
+      certificateUrl: newEventCertificateUrl || '',
     };
     try {
       const eventsRef = ref(db, 'events');
@@ -272,6 +279,7 @@ export default function AdminDashboard() {
       setNewEventName('');
       setNewEventDate('');
       setNewEventOrganizer('');
+      setNewEventCertificateUrl('');
     } catch (e) {
       console.error("Error adding event: ", e);
       toast({ title: 'Error', description: 'Failed to add event.', variant: 'destructive' });
@@ -378,6 +386,10 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="event-organizer" className="text-right">Organizer</Label>
                   <Input id="event-organizer" value={newEventOrganizer} onChange={(e) => setNewEventOrganizer(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="event-cert-url" className="text-right">Certificate URL</Label>
+                  <Input id="event-cert-url" value={newEventCertificateUrl} onChange={(e) => setNewEventCertificateUrl(e.target.value)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
                 </div>
               </div>
               <DialogFooter>
@@ -500,6 +512,7 @@ export default function AdminDashboard() {
                     <TableHead>Name</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Organizer</TableHead>
+                    <TableHead>Certificate URL</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -509,6 +522,7 @@ export default function AdminDashboard() {
                       <TableCell className="font-medium">{event.name}</TableCell>
                       <TableCell>{event.date}</TableCell>
                       <TableCell>{event.organizedBy}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{event.certificateUrl || 'Not set'}</TableCell>
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -661,6 +675,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="organizedBy" className="text-right">Organizer</Label>
                 <Input id="organizedBy" value={editingEvent.organizedBy} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizedBy: e.target.value} : null)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="certificateUrl" className="text-right">Certificate URL</Label>
+                <Input id="certificateUrl" value={editingEvent.certificateUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateUrl: e.target.value} : null)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
               </div>
             </div>
           )}

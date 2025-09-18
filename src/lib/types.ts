@@ -14,4 +14,5 @@ export interface Event {
   organizedBy: string;
   date: string;
   purpose: string;
+  certificateUrl?: string;
 }
