@@ -600,7 +600,7 @@ export default function AdminDashboard() {
                     <SelectItem value="Organizer">Organizer</SelectItem>
                     <SelectItem value="Supervisor">Supervisor</SelectItem>
                   </SelectContent>
-                </select>
+                </Select>
               </div>
             </div>
           )}
@@ -640,3 +640,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    
