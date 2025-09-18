@@ -4,6 +4,14 @@ import { Leaf, LogIn, LogOut, User, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -24,25 +32,32 @@ export default function Header() {
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          {isAuthenticated && user && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="h-4 w-4" />
-              <span>{user.email}</span>
-            </div>
-          )}
           {isAuthenticated ? (
-            <>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/dashboard">
-                  <LayoutDashboard />
-                  Dashboard
-                </Link>
-              </Button>
-              <Button onClick={handleLogout} variant="outline" size="sm">
-                <LogOut />
-                Logout
-              </Button>
-            </>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="overflow-hidden rounded-full"
+                >
+                  <User />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/dashboard" className='cursor-pointer'>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className='cursor-pointer'>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button asChild size="sm">
               <Link href="/admin">
