@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings, Award } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButt
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
 
-type DashboardView = 'members' | 'pending' | 'events' | 'settings';
+type DashboardView = 'members' | 'pending' | 'events' | 'settings' | 'certificates';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -495,6 +495,41 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         );
+      case 'certificates':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Certificate Settings</CardTitle>
+              <CardDescription>Manage certificate templates for events.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event Name</TableHead>
+                    <TableHead>Certificate URL</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {events.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="font-medium">{event.name}</TableCell>
+                      <TableCell className="truncate max-w-[200px] md:max-w-full">
+                        {event.certificateUrl ? (
+                          <a href={event.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
+                            {event.certificateUrl}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">Default Template</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        );
         case 'settings':
           return (
              <Card>
@@ -541,6 +576,12 @@ export default function AdminDashboard() {
                 Events
               </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => setView('certificates')} isActive={view === 'certificates'}>
+                <Award />
+                Certificates
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -564,6 +605,7 @@ export default function AdminDashboard() {
                   {view === 'members' && 'Approved Members'}
                   {view === 'pending' && 'Pending Members'}
                   {view === 'events' && 'Events'}
+                  {view === 'certificates' && 'Certificates'}
                   {view === 'settings' && 'Settings'}
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground">Manage members and events for GreenPass.</p>
