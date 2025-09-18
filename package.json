@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "local:dev": "npm-run-all --parallel dev genkit:watch"
+    "local:dev": "npm-run-all --parallel dev genkit:watch",
+    "seed": "tsx src/lib/seed.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
@@ -64,6 +65,7 @@
     "npm-run-all": "^4.1.5",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.16.2",
     "typescript": "^5"
   }
 }
