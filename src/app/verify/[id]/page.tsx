@@ -1,74 +1,24 @@
-'use client';
-
 import { getMemberById, getEventByName } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CheckCircle2, XCircle, Home, User, Calendar, Award, Download } from 'lucide-react';
-import Certificate from '@/components/certificate';
+import { CheckCircle2, XCircle, Home, User, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { useEffect, useRef, useState } from 'react';
 import type { Member, Event } from '@/lib/types';
-import html2canvas from 'html2canvas';
-import { useToast } from '@/hooks/use-toast';
-import { useParams } from 'next/navigation';
+import { CertificateDisplay } from '@/components/certificate-display';
 
-export default function VerifyPage() {
-  const { toast } = useToast();
-  const params = useParams();
-  const [member, setMember] = useState<Member | undefined>(undefined);
-  const [event, setEvent] = useState<Event | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const certificateRef = useRef<HTMLDivElement>(null);
-  const [id, setId] = useState<string>('');
-
-  useEffect(() => {
-    if (params) {
-      const currentId = Array.isArray(params.id) ? params.id[0] : params.id;
-      if (currentId) {
-        setId(currentId);
-        setLoading(true);
-        getMemberById(currentId).then(foundMember => {
-          setMember(foundMember);
-          if (foundMember) {
-            getEventByName(foundMember.event).then(foundEvent => {
-              setEvent(foundEvent);
-            });
-          }
-          setLoading(false);
-        });
-      }
-    }
-  }, [params]);
-
-  const handleDownload = () => {
-    if (certificateRef.current) {
-      toast({ title: 'Preparing Download', description: 'Generating high-resolution certificate...' });
-      html2canvas(certificateRef.current, {
-        scale: 3, // Increase scale for higher resolution
-        useCORS: true,
-        backgroundColor: null,
-      }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `GreenPass_Certificate_${member?.id}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        toast({ title: 'Download Started', description: 'Your certificate is being downloaded.' });
-      }).catch(err => {
-        console.error('oops, something went wrong!', err);
-        toast({ title: 'Download Failed', description: 'Could not generate certificate image.', variant: 'destructive'});
-      });
-    }
-  };
-  
-  if (loading) {
-    return (
-       <div className="container py-10 text-center">
-        <p>Loading member data...</p>
-      </div>
-    );
+async function getMemberData(id: string): Promise<{ member: Member | undefined; event: Event | undefined }> {
+  const member = await getMemberById(id);
+  if (!member) {
+    return { member: undefined, event: undefined };
   }
+  const event = await getEventByName(member.event);
+  return { member, event };
+}
+
+export default async function VerifyPage({ params }: { params: { id: string } }) {
+  const { id } = params;
+  const { member, event } = await getMemberData(id);
 
   if (!member) {
     return (
@@ -143,19 +93,10 @@ export default function VerifyPage() {
             </Card>
           </div>
           
-          <Separator />
-          
-          <div className="space-y-2 text-center">
-             <h3 className="text-xl font-semibold flex items-center justify-center gap-2"><Award className="text-primary"/> Digital Certificate</h3>
-          </div>
-          {event && <Certificate member={member} event={event} ref={certificateRef} />}
+          {event && <CertificateDisplay member={member} event={event} />}
 
-          <div className="text-center pt-4 flex justify-center gap-4">
-            <Button onClick={handleDownload}>
-              <Download className="mr-2 h-4 w-4" />
-              Download Certificate
-            </Button>
-            <Button asChild variant="outline">
+          <div className="text-center pt-4 flex justify-center">
+             <Button asChild variant="outline">
               <Link href="/">
                 <Home className="mr-2 h-4 w-4" />
                 Back to Homepage
