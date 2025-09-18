@@ -1,24 +1,48 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { app } from '@/lib/firebase'; // Ensure app is exported from firebase.ts
 
 interface AuthContextType {
+  user: User | null;
   isAuthenticated: boolean;
-  login: () => void;
+  loading: boolean;
+  login: (user: User | null) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
+  useEffect(() => {
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const login = (user: User | null) => {
+    setUser(user);
+  };
+
+  const logout = async () => {
+    const auth = getAuth(app);
+    await signOut(auth);
+    setUser(null);
+  };
+
+  const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

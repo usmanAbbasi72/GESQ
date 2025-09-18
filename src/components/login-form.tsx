@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -17,13 +18,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
+import { db } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email.",
   }),
-  password: z.string().min(1, {
-    message: "Password is required.",
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
   }),
 })
 
@@ -40,14 +42,23 @@ export function LoginForm() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you'd authenticate here.
-    login();
-    toast({
-      title: "Login Successful",
-      description: "Redirecting to the dashboard...",
-    })
-    router.push("/admin/dashboard")
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const auth = getAuth();
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      login(auth.currentUser); // Pass user to context
+      toast({
+        title: "Login Successful",
+        description: "Redirecting to the dashboard...",
+      })
+      router.push("/admin/dashboard")
+    } catch (error: any) {
+       toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
   }
 
   return (
