@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type PendingMember = Omit<Member, 'approved' | 'event'> & { id: string };
+type PendingMember = Omit<Member, 'approved'> & { id: string };
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -62,6 +62,7 @@ export default function AdminDashboard() {
   const [newMemberFatherName, setNewMemberFatherName] = React.useState('');
   const [newMemberCnic, setNewMemberCnic] = React.useState('');
   const [newMemberRole, setNewMemberRole] = React.useState<'Participant' | 'Volunteer' | 'Organizer' | 'Supervisor'>('Participant');
+  const [newMemberEvent, setNewMemberEvent] = React.useState('');
   
   const [editingMember, setEditingMember] = React.useState<Member | null>(null);
   const [isEditMemberOpen, setIsEditMemberOpen] = React.useState(false);
@@ -86,7 +87,7 @@ export default function AdminDashboard() {
         cnic: pendingMember.cnic,
         role: pendingMember.role,
         approved: true,
-        event: '', // Initially no event
+        event: pendingMember.event || '',
       };
       
       const memberRef = ref(db, `members/${newMemberId}`);
@@ -141,7 +142,7 @@ export default function AdminDashboard() {
   };
 
   const handleAddMember = async () => {
-    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberRole) {
+    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberRole || !newMemberEvent) {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
     }
@@ -151,6 +152,7 @@ export default function AdminDashboard() {
       fatherName: newMemberFatherName,
       cnic: newMemberCnic,
       role: newMemberRole,
+      event: newMemberEvent,
     };
     
     try {
@@ -168,6 +170,7 @@ export default function AdminDashboard() {
         setNewMemberFatherName('');
         setNewMemberCnic('');
         setNewMemberRole('Participant');
+        setNewMemberEvent('');
     } catch (e) {
       console.error("Error adding member:", e);
       toast({ title: 'Error', description: 'Failed to add member.', variant: 'destructive' });
@@ -330,6 +333,19 @@ export default function AdminDashboard() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="event-add-member" className="text-right">Event</Label>
+                   <Select onValueChange={(value) => setNewMemberEvent(value)} value={newMemberEvent}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select an event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.map(event => (
+                        <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button onClick={handleAddMember}>Save Member</Button>
@@ -439,6 +455,7 @@ export default function AdminDashboard() {
                     <TableHead>Father's Name</TableHead>
                     <TableHead>CNIC</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Event</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -449,6 +466,7 @@ export default function AdminDashboard() {
                       <TableCell>{member.fatherName}</TableCell>
                       <TableCell>{member.cnic}</TableCell>
                       <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
+                      <TableCell>{member.event || 'N/A'}</TableCell>
                        <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -599,6 +617,20 @@ export default function AdminDashboard() {
                     <SelectItem value="Volunteer">Volunteer</SelectItem>
                     <SelectItem value="Organizer">Organizer</SelectItem>
                     <SelectItem value="Supervisor">Supervisor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="event-edit-pending" className="text-right">Event</Label>
+                 <Select onValueChange={(value) => setEditingPendingMember(prev => prev ? {...prev, event: value === 'none' ? '' : value} : null)} value={editingPendingMember.event || 'none'}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="none">N/A</SelectItem>
+                    {events.map(event => (
+                      <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
