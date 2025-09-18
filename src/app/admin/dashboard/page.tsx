@@ -292,13 +292,13 @@ export default function AdminDashboard() {
               <CardDescription>List of all verified participants and staff.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead>Father's Name</TableHead>
-                    <TableHead>CNIC</TableHead>
+                    <TableHead className="hidden lg:table-cell">Father's Name</TableHead>
+                    <TableHead className="hidden lg:table-cell">CNIC</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Event</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -309,8 +309,8 @@ export default function AdminDashboard() {
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.id}</TableCell>
                       <TableCell>{member.userName}</TableCell>
-                      <TableCell>{member.fatherName}</TableCell>
-                      <TableCell>{member.cnic}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{member.fatherName}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{member.cnic}</TableCell>
                       <TableCell><Badge variant="outline">{member.role}</Badge></TableCell>
                       <TableCell>{member.event || 'N/A'}</TableCell>
                       <TableCell className="text-right">
@@ -329,6 +329,31 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
+              <div className="grid gap-4 md:hidden">
+                {members.map(member => (
+                  <Card key={member.id} className="p-4">
+                     <div className="flex items-center justify-between">
+                        <div className="font-medium">{member.userName}</div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)}>Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{member.id} &middot; {member.fatherName}</div>
+                      <div className="text-sm text-muted-foreground">{member.cnic}</div>
+                      <div className="flex items-center justify-between mt-2">
+                        <Badge variant="outline">{member.role}</Badge>
+                        <div className="text-sm">{member.event || 'N/A'}</div>
+                      </div>
+                  </Card>
+                ))}
+              </div>
             </CardContent>
           </Card>
         );
@@ -340,12 +365,12 @@ export default function AdminDashboard() {
               <CardDescription>List of members awaiting approval.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Father's Name</TableHead>
-                    <TableHead>CNIC</TableHead>
+                    <TableHead className="hidden lg:table-cell">Father's Name</TableHead>
+                    <TableHead className="hidden lg:table-cell">CNIC</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Event</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -355,8 +380,8 @@ export default function AdminDashboard() {
                   {pendingMembers.map((member) => (
                     <TableRow key={member.id}>
                       <TableCell>{member.userName}</TableCell>
-                      <TableCell>{member.fatherName}</TableCell>
-                      <TableCell>{member.cnic}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{member.fatherName}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{member.cnic}</TableCell>
                       <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                       <TableCell>{member.event || 'N/A'}</TableCell>
                        <TableCell className="text-right">
@@ -376,6 +401,32 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
+              <div className="grid gap-4 md:hidden">
+                 {pendingMembers.map(member => (
+                  <Card key={member.id} className="p-4">
+                     <div className="flex items-center justify-between">
+                        <div className="font-medium">{member.userName}</div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{member.fatherName}</div>
+                      <div className="text-sm text-muted-foreground">{member.cnic}</div>
+                      <div className="flex items-center justify-between mt-2">
+                        <Badge variant="secondary">{member.role}</Badge>
+                         <div className="text-sm">{member.event || 'N/A'}</div>
+                      </div>
+                  </Card>
+                ))}
+              </div>
             </CardContent>
           </Card>
         );
@@ -387,13 +438,13 @@ export default function AdminDashboard() {
               <CardDescription>List of all organized events.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Organizer</TableHead>
-                    <TableHead>Certificate URL</TableHead>
+                    <TableHead className="hidden lg:table-cell">Organizer</TableHead>
+                    <TableHead className="hidden lg:table-cell">Certificate URL</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -402,8 +453,8 @@ export default function AdminDashboard() {
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.name}</TableCell>
                       <TableCell>{event.date}</TableCell>
-                      <TableCell>{event.organizedBy}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{event.certificateUrl || 'Not set'}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{event.organizedBy}</TableCell>
+                      <TableCell className="max-w-[200px] truncate hidden lg:table-cell">{event.certificateUrl || 'Not set'}</TableCell>
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -420,6 +471,27 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
+              <div className="grid gap-4 md:hidden">
+                {events.map(event => (
+                  <Card key={event.id} className="p-4">
+                     <div className="flex items-center justify-between">
+                        <div className="font-medium">{event.name}</div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{event.date} &middot; {event.organizedBy}</div>
+                       <div className="text-sm text-muted-foreground truncate mt-2">Cert URL: {event.certificateUrl || 'Not set'}</div>
+                  </Card>
+                ))}
+              </div>
             </CardContent>
           </Card>
         );
@@ -483,26 +555,26 @@ export default function AdminDashboard() {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="container py-10">
+        <div className="p-4 sm:p-6 lg:p-10">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <div>
-                <h1 className="text-3xl font-bold font-headline">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-headline">
                   {view === 'members' && 'Approved Members'}
                   {view === 'pending' && 'Pending Members'}
                   {view === 'events' && 'Events'}
                   {view === 'settings' && 'Settings'}
                 </h1>
-                <p className="text-muted-foreground">Manage members and events for GreenPass.</p>
+                <p className="text-sm sm:text-base text-muted-foreground">Manage members and events for GreenPass.</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
                 <DialogTrigger asChild>
                   <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Member
+                    Add Member
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -562,7 +634,7 @@ export default function AdminDashboard() {
                 <DialogTrigger asChild>
                   <Button variant="outline">
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Event
+                    Add Event
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
