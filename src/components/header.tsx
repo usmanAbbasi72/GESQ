@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { Leaf, LogIn, LogOut, User } from 'lucide-react';
+import { Leaf, LogIn, LogOut, User, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -31,10 +31,18 @@ export default function Header() {
             </div>
           )}
           {isAuthenticated ? (
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut />
-              Logout
-            </Button>
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/admin/dashboard">
+                  <LayoutDashboard />
+                  Dashboard
+                </Link>
+              </Button>
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut />
+                Logout
+              </Button>
+            </>
           ) : (
             <Button asChild size="sm">
               <Link href="/admin">

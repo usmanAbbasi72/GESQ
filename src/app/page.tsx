@@ -1,5 +1,4 @@
 import { SearchForm } from '@/components/search-form';
-import { DashboardLink } from '@/components/dashboard-link';
 import { Leaf } from 'lucide-react';
 
 export default function Home() {
@@ -17,7 +16,6 @@ export default function Home() {
       </div>
       <div className="w-full max-w-md space-y-4">
         <SearchForm />
-        <DashboardLink />
       </div>
     </section>
   );
