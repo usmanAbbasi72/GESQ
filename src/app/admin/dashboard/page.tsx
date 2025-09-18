@@ -534,12 +534,12 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="event" className="text-right">Event</Label>
-                 <Select onValueChange={(value) => setEditingMember(prev => prev ? {...prev, event: value} : null)} value={editingMember.event}>
+                 <Select onValueChange={(value) => setEditingMember(prev => prev ? {...prev, event: value === 'none' ? '' : value} : null)} value={editingMember.event || 'none'}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select an event" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="">N/A</SelectItem>
+                     <SelectItem value="none">N/A</SelectItem>
                     {events.map(event => (
                       <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
                     ))}
@@ -640,5 +640,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    
