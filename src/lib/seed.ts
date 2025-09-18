@@ -3,7 +3,7 @@
 // To run this script, run `npm run seed` in your terminal.
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
+import { getDatabase, ref, set } from 'firebase/database';
 
 const firebaseConfig = {
   "projectId": "studio-3766857156-b0e75",
@@ -12,32 +12,30 @@ const firebaseConfig = {
   "apiKey": "AIzaSyBOGlG8Yuc7OsRtMvfxAJzAhjmClOKDMXQ",
   "authDomain": "studio-3766857156-b0e75.firebaseapp.com",
   "measurementId": "",
-  "messagingSenderId": "810566605670"
+  "messagingSenderId": "810566605670",
+  "databaseURL": "https://studio-3766857156-b0e75-default-rtdb.firebaseio.com"
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
-const events = [
-    {
-        id: "EVT001",
+const events = {
+    "EVT001": {
         name: "Annual Tree Plantation 2024",
         date: "2024-08-15",
         organizedBy: "Green Environmental Society",
         purpose: "To increase green cover in the city."
     },
-    {
-        id: "EVT002",
+    "EVT002": {
         name: "Beach Cleanup Drive",
         date: "2024-09-22",
         organizedBy: "Green Environmental Society",
         purpose: "To clean and preserve our coastal ecosystems."
     },
-];
+};
 
-const members = [
-    {
-        id: "GES101",
+const members = {
+    "GES101": {
         userName: "Ahmed Khan",
         fatherName: "Zahid Khan",
         cnic: "42201-1234567-1",
@@ -45,8 +43,7 @@ const members = [
         approved: true,
         event: "Annual Tree Plantation 2024"
     },
-    {
-        id: "GES102",
+    "GES102": {
         userName: "Fatima Ali",
         fatherName: "Ali Raza",
         cnic: "42201-2345678-2",
@@ -54,8 +51,7 @@ const members = [
         approved: true,
         event: "Annual Tree Plantation 2024"
     },
-    {
-        id: "GES103",
+    "GES103": {
         userName: "Bilal Ahmed",
         fatherName: "Mushtaq Ahmed",
         cnic: "42201-3456789-3",
@@ -63,50 +59,32 @@ const members = [
         approved: true,
         event: "Annual Tree Plantation 2024"
     },
-];
+};
 
-const pendingMembers = [
-    {
+const pendingMembers = {
+    "PEND001": {
         userName: "Sana Javed",
         fatherName: "Javed Iqbal",
         cnic: "42201-4567890-4",
         role: "Participant"
     },
-    {
+    "PEND002": {
         userName: "Usman Malik",
         fatherName: "Malik Shah",
         cnic: "42201-5678901-5",
         role: "Volunteer"
     }
-]
-
+};
 
 async function seedDatabase() {
-    console.log('Seeding database...');
+    console.log('Seeding Realtime Database...');
     try {
-        // Seed events
-        const eventPromises = events.map(async (eventData) => {
-            const { id, ...data } = eventData;
-            await setDoc(doc(db, 'events', id), data);
-            console.log(`Seeded event: ${id}`);
+        const rootRef = ref(db);
+        await set(rootRef, {
+            events,
+            members,
+            pendingMembers
         });
-
-        // Seed members
-        const memberPromises = members.map(async (memberData) => {
-            const { id, ...data } = memberData;
-            await setDoc(doc(db, 'members', id), data);
-             console.log(`Seeded member: ${id}`);
-        });
-        
-        // Seed pending members
-        const pendingPromises = pendingMembers.map(async (memberData) => {
-            // Firestore will auto-generate an ID for pending members
-            const newDocRef = doc(collection(db, 'pendingMembers'));
-            await setDoc(newDocRef, memberData);
-            console.log(`Seeded pending member: ${memberData.cnic}`);
-        });
-        
-        await Promise.all([...eventPromises, ...memberPromises, ...pendingPromises]);
         console.log('Database seeding completed successfully!');
     } catch (error) {
         console.error('Error seeding database:', error);
@@ -114,6 +92,5 @@ async function seedDatabase() {
 }
 
 seedDatabase().then(() => {
-    // Manually exit the process after a short delay
     setTimeout(() => process.exit(0), 1000);
 });

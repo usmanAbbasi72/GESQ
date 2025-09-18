@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { getMembers as fetchMembers, getEvents as fetchEvents, getPendingMembers as fetchPendingMembers } from '@/lib/data';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, setDoc, deleteDoc, getDocs, where, query } from 'firebase/firestore';
+import { ref, set, remove, push } from 'firebase/database';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type PendingMember = Omit<Member, 'id' | 'approved' | 'event'> & { originalCnic: string };
+type PendingMember = Omit<Member, 'approved' | 'event'> & { id: string };
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -41,7 +41,7 @@ export default function AdminDashboard() {
         fetchEvents(),
       ]);
       setMembers(membersData);
-      setPendingMembers(pendingData.map(m => ({ ...m, originalCnic: m.cnic })));
+      setPendingMembers(pendingData);
       setEvents(eventsData);
     };
     loadData();
@@ -67,30 +67,26 @@ export default function AdminDashboard() {
   const [newEventDate, setNewEventDate] = React.useState('');
   const [newEventOrganizer, setNewEventOrganizer] = React.useState('');
 
-
   const handleApprove = async (pendingMember: PendingMember) => {
     try {
-      // A simple way to generate a new ID. You might want a more robust solution.
       const newMemberId = `GES${String(members.length + 101).padStart(3, '0')}`;
-      const newMember: Member = {
+      const newMember: Omit<Member, 'id'> = {
         userName: pendingMember.userName,
         fatherName: pendingMember.fatherName,
         cnic: pendingMember.cnic,
         role: pendingMember.role,
-        id: newMemberId,
         approved: true,
         event: '', // Initially no event
       };
       
-      await setDoc(doc(db, "members", newMemberId), newMember);
+      const memberRef = ref(db, `members/${newMemberId}`);
+      await set(memberRef, newMember);
       
-      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.originalCnic));
-      const querySnapshot = await getDocs(q);
-      const deletePromises = querySnapshot.docs.map((document) => deleteDoc(document.ref));
-      await Promise.all(deletePromises);
+      const pendingMemberRef = ref(db, `pendingMembers/${pendingMember.id}`);
+      await remove(pendingMemberRef);
 
-      setMembers(prev => [...prev, newMember]);
-      setPendingMembers(prev => prev.filter(m => m.originalCnic !== pendingMember.originalCnic));
+      setMembers(prev => [...prev, { ...newMember, id: newMemberId }]);
+      setPendingMembers(prev => prev.filter(m => m.id !== pendingMember.id));
 
       toast({ title: 'Member Approved', description: `${pendingMember.userName} has been approved.` });
     } catch(e) {
@@ -101,12 +97,10 @@ export default function AdminDashboard() {
 
   const handleReject = async (pendingMember: PendingMember) => {
     try {
-      const q = query(collection(db, "pendingMembers"), where("cnic", "==", pendingMember.originalCnic));
-      const querySnapshot = await getDocs(q);
-      const deletePromises = querySnapshot.docs.map((document) => deleteDoc(document.ref));
-      await Promise.all(deletePromises);
+      const pendingMemberRef = ref(db, `pendingMembers/${pendingMember.id}`);
+      await remove(pendingMemberRef);
 
-      setPendingMembers(prev => prev.filter(m => m.originalCnic !== pendingMember.originalCnic));
+      setPendingMembers(prev => prev.filter(m => m.id !== pendingMember.id));
       toast({ title: 'Member Rejected', description: `${pendingMember.userName} has been rejected.`, variant: 'destructive' });
     } catch (e) {
       console.error("Error rejecting member:", e);
@@ -116,7 +110,8 @@ export default function AdminDashboard() {
   
   const handleDelete = async (member: Member) => {
     try {
-      await deleteDoc(doc(db, "members", member.id));
+      const memberRef = ref(db, `members/${member.id}`);
+      await remove(memberRef);
       setMembers(prev => prev.filter(m => m.id !== member.id));
       toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
     } catch (e) {
@@ -126,7 +121,8 @@ export default function AdminDashboard() {
   
   const handleDeleteEvent = async (event: Event) => {
     try {
-      await deleteDoc(doc(db, "events", event.id));
+      const eventRef = ref(db, `events/${event.id}`);
+      await remove(eventRef);
       setEvents(prev => prev.filter(e => e.id !== event.id));
       toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
     } catch(e) {
@@ -148,9 +144,14 @@ export default function AdminDashboard() {
     };
     
     try {
-        await addDoc(collection(db, "pendingMembers"), newPendingMemberData);
-        setPendingMembers(prev => [...prev, { ...newPendingMemberData, originalCnic: newPendingMemberData.cnic }]);
-        setIsAddMemberOpen(false); // This line closes the dialog
+        const pendingMembersRef = ref(db, 'pendingMembers');
+        const newMemberRef = push(pendingMembersRef);
+        await set(newMemberRef, newPendingMemberData);
+
+        const newMemberWithId = { ...newPendingMemberData, id: newMemberRef.key! };
+        setPendingMembers(prev => [...prev, newMemberWithId]);
+
+        setIsAddMemberOpen(false);
         toast({ title: "Member Added", description: `${newMemberName} is pending approval.`});
         // Reset form
         setNewMemberName('');
@@ -171,7 +172,10 @@ export default function AdminDashboard() {
   const handleUpdateMember = async () => {
     if (!editingMember) return;
     try {
-      await setDoc(doc(db, "members", editingMember.id), editingMember, { merge: true });
+      const { id, ...memberToSave } = editingMember;
+      const memberRef = ref(db, `members/${id}`);
+      await set(memberRef, memberToSave);
+
       setMembers(prev => prev.map(m => (m.id === editingMember.id ? editingMember : m)));
       setIsEditMemberOpen(false);
       setEditingMember(null);
@@ -190,21 +194,13 @@ export default function AdminDashboard() {
   const handleUpdatePendingMember = async () => {
     if (!editingPendingMember) return;
     try {
-      const q = query(collection(db, "pendingMembers"), where("cnic", "==", editingPendingMember.originalCnic));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        throw new Error("Pending member not found in database.");
-      }
-
-      const docRef = querySnapshot.docs[0].ref;
-      const { originalCnic, ...memberToSave } = editingPendingMember;
-
-      await setDoc(docRef, memberToSave, { merge: true });
+      const { id, ...memberToSave } = editingPendingMember;
+      const pendingMemberRef = ref(db, `pendingMembers/${id}`);
+      await set(pendingMemberRef, memberToSave);
 
       setPendingMembers(prev => prev.map(m => 
-        m.originalCnic === editingPendingMember.originalCnic 
-        ? { ...memberToSave, originalCnic: memberToSave.cnic } 
+        m.id === editingPendingMember.id 
+        ? editingPendingMember 
         : m
       ));
       setIsEditPendingMemberOpen(false);
@@ -224,7 +220,10 @@ export default function AdminDashboard() {
   const handleUpdateEvent = async () => {
     if (!editingEvent) return;
      try {
-      await setDoc(doc(db, "events", editingEvent.id), editingEvent, { merge: true });
+      const { id, ...eventToSave } = editingEvent;
+      const eventRef = ref(db, `events/${id}`);
+      await set(eventRef, eventToSave);
+
       setEvents(prev => prev.map(e => (e.id === editingEvent.id ? editingEvent : e)));
       setIsEditEventOpen(false);
       setEditingEvent(null);
@@ -247,9 +246,13 @@ export default function AdminDashboard() {
       purpose: '', // Default purpose
     };
     try {
-      const docRef = await addDoc(collection(db, "events"), newEventData);
-      const newEvent: Event = { ...newEventData, id: docRef.id };
-      setEvents(prevEvents => [...prevEvents, newEvent]); 
+      const eventsRef = ref(db, 'events');
+      const newEventRef = push(eventsRef);
+      await set(newEventRef, newEventData);
+
+      const newEventWithId: Event = { ...newEventData, id: newEventRef.key! };
+      setEvents(prevEvents => [...prevEvents, newEventWithId]); 
+
       setIsAddEventOpen(false);
       toast({ title: "Event Added", description: `${newEventName} has been created.` });
       // Reset form
@@ -425,7 +428,7 @@ export default function AdminDashboard() {
                 </TableHeader>
                 <TableBody>
                   {pendingMembers.map((member) => (
-                    <TableRow key={member.originalCnic}>
+                    <TableRow key={member.id}>
                       <TableCell>{member.userName}</TableCell>
                       <TableCell>{member.fatherName}</TableCell>
                       <TableCell>{member.cnic}</TableCell>
@@ -581,7 +584,7 @@ export default function AdminDashboard() {
                     <SelectItem value="Organizer">Organizer</SelectItem>
                     <SelectItem value="Supervisor">Supervisor</SelectItem>
                   </SelectContent>
-                </Select>
+                </select>
               </div>
             </div>
           )}

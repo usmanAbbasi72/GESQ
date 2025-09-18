@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -10,12 +10,13 @@ const firebaseConfig = {
   "apiKey": "AIzaSyBOGlG8Yuc7OsRtMvfxAJzAhjmClOKDMXQ",
   "authDomain": "studio-3766857156-b0e75.firebaseapp.com",
   "measurementId": "",
-  "messagingSenderId": "810566605670"
+  "messagingSenderId": "810566605670",
+  "databaseURL": "https://studio-3766857156-b0e75-default-rtdb.firebaseio.com"
 };
 
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+const db = getDatabase(app);
 
 export { db };

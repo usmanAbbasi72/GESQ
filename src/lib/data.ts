@@ -1,41 +1,61 @@
 import type { Member, Event } from './types';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { ref, get, child } from 'firebase/database';
+
+// Helper function to convert snapshot to array
+const snapshotToArray = (snapshot: any) => {
+    const returnArr: any[] = [];
+    snapshot.forEach((childSnapshot: any) => {
+        const item = childSnapshot.val();
+        item.id = childSnapshot.key;
+        returnArr.push(item);
+    });
+    return returnArr;
+};
+
+const snapshotToObjectArray = (snapshot: any) => {
+    if (!snapshot.exists()) return [];
+    const data = snapshot.val();
+    return Object.keys(data).map(key => ({ ...data[key], id: key }));
+};
 
 export async function getMembers(): Promise<Member[]> {
-    const querySnapshot = await getDocs(collection(db, "members"));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, 'members'));
+    return snapshotToObjectArray(snapshot);
 }
 
-export async function getPendingMembers(): Promise<(Omit<Member, 'approved' | 'id' | 'event'>)[]> {
-    const querySnapshot = await getDocs(collection(db, "pendingMembers"));
-    return querySnapshot.docs.map(doc => doc.data() as Omit<Member, 'approved' | 'id' | 'event'>);
+export async function getPendingMembers(): Promise<(Omit<Member, 'approved' | 'id' | 'event'> & { id: string })[]> {
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, 'pendingMembers'));
+    return snapshotToObjectArray(snapshot);
 }
 
 export async function getEvents(): Promise<Event[]> {
-    const querySnapshot = await getDocs(collection(db, "events"));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, 'events'));
+    return snapshotToObjectArray(snapshot);
 }
 
-
 export async function getMemberById(id: string): Promise<Member | undefined> {
-  const docRef = doc(db, "members", id);
-  const docSnap = await getDoc(docRef);
-
-  if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() } as Member;
-  } else {
+    const dbRef = ref(db, `members/${id}`);
+    const snapshot = await get(dbRef);
+    if (snapshot.exists()) {
+        return { ...snapshot.val(), id: snapshot.key } as Member;
+    }
     return undefined;
-  }
 }
 
 export async function getEventByName(name: string): Promise<Event | undefined> {
     if (!name) return undefined;
-    const q = query(collection(db, "events"), where("name", "==", name));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        const docSnap = querySnapshot.docs[0];
-        return { id: docSnap.id, ...docSnap.data() } as Event;
+    const eventsRef = ref(db, 'events');
+    const snapshot = await get(eventsRef);
+    if (snapshot.exists()) {
+        const events = snapshot.val();
+        const eventId = Object.keys(events).find(key => events[key].name === name);
+        if (eventId) {
+            return { ...events[eventId], id: eventId } as Event;
+        }
     }
     return undefined;
 }
