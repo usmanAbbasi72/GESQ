@@ -77,27 +77,27 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
         <div className="w-full flex justify-between items-end text-[8px] sm:text-xs md:text-sm">
           <div className='w-1/3 flex flex-col items-center'>
             {event.organizerSignUrl ? (
-              <img src={event.organizerSignUrl} alt="Organizer Signature" className="h-10 w-auto object-contain" crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
-            ) : <div className="h-10"/>}
-            <p className="font-bold border-t pt-1 mt-1" style={{ borderColor: borderColor }}>Organizer's Signature</p>
-            <p>{event.organizedBy}</p>
+              <img src={event.organizerSignUrl} alt="Organizer Signature" className="h-6 sm:h-8 md:h-10 w-auto object-contain" crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
+            ) : <div className="h-6 sm:h-8 md:h-10"/>}
+            <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Organizer's Signature</p>
+            <p className="w-full truncate px-1">{event.organizedBy}</p>
           </div>
 
           <div className="flex flex-col items-center w-1/3">
             {event.qrCodeUrl ? (
                 <div className="p-1 bg-white rounded-md border border-primary/50">
-                    <img src={event.qrCodeUrl} alt="QR Code" className='h-16 w-16' crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
+                    <img src={event.qrCodeUrl} alt="QR Code" className='h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16' crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
                 </div>
             ) : (
-                verificationUrl && <QRCodeDisplay url={verificationUrl} />
+                verificationUrl && <QRCodeDisplay url={verificationUrl} size={64} />
             )}
-            <p className="font-bold border-t pt-1 mt-1" style={{ borderColor: borderColor }}>Verification ID</p>
+            <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Verification ID</p>
             <p>{member.id}</p>
           </div>
 
           <div className='w-1/3 flex flex-col items-center'>
-            <div className="h-10" />
-            <p className="font-bold border-t pt-1 mt-1" style={{ borderColor: borderColor }}>Event Date</p>
+            <div className="h-6 sm:h-8 md:h-10" />
+            <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Event Date</p>
             <p>{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
         </div>
