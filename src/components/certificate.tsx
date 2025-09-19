@@ -17,7 +17,11 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   const certificateImage = event.certificateUrl || fallbackImage?.imageUrl;
 
   const textColor = event.certificateTextColor || 'hsl(var(--foreground))';
-  const primaryColor = event.certificateTextColor || 'hsl(var(--primary))';
+  // If a custom text color is set, make the primary color slightly brighter/more saturated.
+  // Otherwise, use the theme's primary color.
+  const primaryColor = event.certificateTextColor 
+    ? `color-mix(in srgb, ${event.certificateTextColor} 100%, white 10%)`
+    : 'hsl(var(--primary))';
   const accentColor = event.certificateTextColor || 'hsl(var(--accent-foreground))';
   const accentBgColor = event.certificateTextColor ? `color-mix(in srgb, ${event.certificateTextColor} 20%, transparent)` : 'hsl(var(--accent))';
   const borderColor = event.certificateTextColor || 'hsl(var(--foreground))';
@@ -48,7 +52,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
        <div 
           className="absolute inset-0 bg-black/30"
           // Add a semi-transparent overlay if there's a background image
-          style={{ backgroundColor: certificateImage ? 'rgba(0,0,0,0.4)' : 'transparent' }}
+          style={{ backgroundColor: certificateImage ? 'rgba(0,0,0,0.3)' : 'transparent' }}
         />
 
       <div className="absolute inset-0 flex flex-col items-center justify-between p-2 sm:p-6 md:p-8 text-center font-serif" style={{ color: textColor }}>
