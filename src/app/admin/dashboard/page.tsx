@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings, Award } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings, Award, Eye } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -18,10 +18,21 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { Textarea } from '@/components/ui/textarea';
+import Certificate from '@/components/certificate';
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
 
 type DashboardView = 'members' | 'pending' | 'events' | 'settings' | 'certificates';
+
+const sampleMember: Member = {
+  id: 'GES-SAMPLE',
+  userName: 'John Doe',
+  fatherName: 'Richard Doe',
+  cnic: '00000-0000000-0',
+  role: 'Participant',
+  approved: true,
+  event: '',
+};
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -30,6 +41,8 @@ export default function AdminDashboard() {
   const [events, setEvents] = React.useState<Event[]>([]);
   const [dbStatus, setDbStatus] = React.useState(false);
   const [view, setView] = React.useState<DashboardView>('members');
+
+  const [previewEvent, setPreviewEvent] = React.useState<Event | null>(null);
 
   React.useEffect(() => {
     const loadData = async () => {
@@ -510,6 +523,7 @@ export default function AdminDashboard() {
                   <TableRow>
                     <TableHead>Event Name</TableHead>
                     <TableHead>Certificate BG Image</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -524,6 +538,12 @@ export default function AdminDashboard() {
                         ) : (
                           <span className="text-muted-foreground">Default Template</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" onClick={() => setPreviewEvent(event)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                           Preview
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -904,6 +924,29 @@ export default function AdminDashboard() {
           )}
           <DialogFooter>
             <Button onClick={handleUpdateEvent}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Certificate Preview Dialog */}
+      <Dialog open={!!previewEvent} onOpenChange={(isOpen) => !isOpen && setPreviewEvent(null)}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Certificate Preview: {previewEvent?.name}</DialogTitle>
+            <DialogDescription>This is a sample of how the certificate will look for this event.</DialogDescription>
+          </DialogHeader>
+          {previewEvent && (
+             <div className="my-4">
+                <Certificate 
+                    member={{...sampleMember, event: previewEvent.name}} 
+                    event={previewEvent} 
+                    verificationUrl={`https://gesq.netlify.app/verify/${sampleMember.id}`} 
+                    onAssetsLoaded={() => {}}
+                />
+             </div>
+          )}
+          <DialogFooter>
+              <Button variant="outline" onClick={() => setPreviewEvent(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
