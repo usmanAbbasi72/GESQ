@@ -17,8 +17,6 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   const certificateImage = event.certificateUrl || fallbackImage?.imageUrl;
 
   const textColor = event.certificateTextColor || 'hsl(var(--foreground))';
-  // If a custom text color is set, make the primary color slightly brighter/more saturated.
-  // Otherwise, use the theme's primary color.
   const primaryColor = event.certificateTextColor 
     ? `color-mix(in srgb, ${event.certificateTextColor} 100%, white 10%)`
     : 'hsl(var(--primary))';
@@ -26,9 +24,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   const accentBgColor = event.certificateTextColor ? `color-mix(in srgb, ${event.certificateTextColor} 20%, transparent)` : 'hsl(var(--accent))';
   const borderColor = event.certificateTextColor || 'hsl(var(--foreground))';
   
-
   const handleAssetLoad = () => {
-    // This is a simple check. If you have multiple assets (like signature), you'll need a more robust counter.
     onAssetsLoaded();
   }
 
@@ -50,20 +46,36 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
         />
       )}
        <div 
-          className="absolute inset-0 bg-black/30"
-          // Add a semi-transparent overlay if there's a background image
-          style={{ backgroundColor: certificateImage ? 'rgba(0,0,0,0.5)' : 'transparent' }}
+          className="absolute inset-0"
+          style={{ backgroundColor: certificateImage ? 'rgba(0,0,0,0.3)' : 'transparent' }}
         />
 
       <div className="absolute inset-0 flex flex-col items-center justify-between p-2 sm:p-6 md:p-8 text-center font-serif" style={{ color: textColor }}>
-        <div className="flex items-center gap-2 md:gap-3">
-          <Leaf className="w-6 h-6 md:w-10 md:h-10" style={{ color: primaryColor }} />
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold font-headline" style={{ color: primaryColor }}>
-            Green Environmental Society
-          </h2>
+        
+        {/* Top Section */}
+        <div className="w-full flex justify-between items-start">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Leaf className="w-6 h-6 md:w-10 md:h-10" style={{ color: primaryColor }} />
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold font-headline" style={{ color: primaryColor }}>
+                Green Environmental Society
+              </h2>
+            </div>
+            
+            <div className="flex flex-col items-center text-[8px] sm:text-xs md:text-sm">
+                {event.qrCodeUrl ? (
+                    <div className="p-1 bg-white rounded-md border border-primary/50">
+                        <img src={event.qrCodeUrl} alt="QR Code" className='h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16' crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
+                    </div>
+                ) : (
+                    verificationUrl && <QRCodeDisplay url={verificationUrl} size={64} />
+                )}
+                <p className="font-bold mt-1">Verification ID</p>
+                <p>{member.id}</p>
+            </div>
         </div>
 
-        <div className="flex flex-col items-center">
+        {/* Main Content */}
+        <div className="flex flex-col items-center -mt-8">
             <p className="text-xs sm:text-base md:text-lg">This certificate is proudly presented to</p>
             <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold my-1 md:my-4 font-headline tracking-wide" style={{ color: primaryColor }}>
               {member.userName}
@@ -78,8 +90,9 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
             </h3>
         </div>
 
-        <div className="w-full flex justify-between items-end text-[8px] sm:text-xs md:text-sm">
-          <div className='w-1/3 flex flex-col items-center'>
+        {/* Footer Section */}
+        <div className="w-full flex justify-between items-end text-[8px] sm:text-xs md:text-sm pt-4">
+          <div className='flex-1 flex flex-col items-center'>
             {event.organizerSignUrl ? (
               <img src={event.organizerSignUrl} alt="Organizer Signature" className="h-6 sm:h-8 md:h-10 w-auto object-contain" crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
             ) : <div className="h-6 sm:h-8 md:h-10"/>}
@@ -87,19 +100,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
             <p className="w-full truncate px-1">{event.organizedBy}</p>
           </div>
 
-          <div className="flex flex-col items-center w-1/3">
-            {event.qrCodeUrl ? (
-                <div className="p-1 bg-white rounded-md border border-primary/50">
-                    <img src={event.qrCodeUrl} alt="QR Code" className='h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16' crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
-                </div>
-            ) : (
-                verificationUrl && <QRCodeDisplay url={verificationUrl} size={64} />
-            )}
-            <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Verification ID</p>
-            <p>{member.id}</p>
-          </div>
-
-          <div className='w-1/3 flex flex-col items-center'>
+          <div className='flex-1 flex flex-col items-center'>
             <div className="h-6 sm:h-8 md:h-10" />
             <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Event Date</p>
             <p>{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
