@@ -17,11 +17,9 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   const certificateImage = event.certificateUrl || fallbackImage?.imageUrl;
 
   const textColor = event.certificateTextColor || 'hsl(var(--foreground))';
-  const primaryColor = event.certificateTextColor 
-    ? `color-mix(in srgb, ${event.certificateTextColor} 100%, white 10%)`
-    : 'hsl(var(--primary))';
+  const primaryColor = event.certificateTextColor || 'hsl(var(--primary))';
   const accentColor = event.certificateTextColor || 'hsl(var(--accent-foreground))';
-  const accentBgColor = event.certificateTextColor ? `color-mix(in srgb, ${event.certificateTextColor} 20%, transparent)` : 'hsl(var(--accent))';
+  const accentBgColor = event.certificateTextColor ? 'hsla(0, 0%, 100%, 0.15)' : 'hsl(var(--accent))';
   const borderColor = event.certificateTextColor || 'hsl(var(--foreground))';
   
   const handleAssetLoad = () => {
@@ -101,7 +99,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
           </div>
 
           <div className='flex-1 flex flex-col items-center'>
-            <div className="h-6 sm:h-8 md:h-10" />
+            <div className="h-6 smh-8 md:h-10" />
             <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Event Date</p>
             <p>{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
