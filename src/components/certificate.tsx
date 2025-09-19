@@ -52,7 +52,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
        <div 
           className="absolute inset-0 bg-black/30"
           // Add a semi-transparent overlay if there's a background image
-          style={{ backgroundColor: certificateImage ? 'rgba(0,0,0,0.3)' : 'transparent' }}
+          style={{ backgroundColor: certificateImage ? 'rgba(0,0,0,0.5)' : 'transparent' }}
         />
 
       <div className="absolute inset-0 flex flex-col items-center justify-between p-2 sm:p-6 md:p-8 text-center font-serif" style={{ color: textColor }}>
