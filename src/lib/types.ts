@@ -15,4 +15,8 @@ export interface Event {
   date: string;
   purpose: string;
   certificateUrl?: string;
+  certificateBackgroundColor?: string;
+  certificateTextColor?: string;
+  organizerSignUrl?: string;
+  qrCodeUrl?: string;
 }

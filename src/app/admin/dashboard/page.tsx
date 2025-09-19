@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
+import { Textarea } from '@/components/ui/textarea';
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
 
@@ -75,10 +76,16 @@ export default function AdminDashboard() {
   const [isEditEventOpen, setIsEditEventOpen] = React.useState(false);
   
   const [isAddEventOpen, setIsAddEventOpen] = React.useState(false);
-  const [newEventName, setNewEventName] = React.useState('');
-  const [newEventDate, setNewEventDate] = React.useState('');
-  const [newEventOrganizer, setNewEventOrganizer] = React.useState('');
-  const [newEventCertificateUrl, setNewEventCertificateUrl] = React.useState('');
+  const [newEventData, setNewEventData] = React.useState<Partial<Omit<Event, 'id'>>>({
+    name: '',
+    date: '',
+    organizedBy: '',
+    certificateUrl: '',
+    certificateBackgroundColor: '#ffffff',
+    certificateTextColor: '#000000',
+    organizerSignUrl: '',
+    qrCodeUrl: '',
+  });
 
   const handleApprove = async (pendingMember: PendingMember) => {
     try {
@@ -250,32 +257,30 @@ export default function AdminDashboard() {
   };
   
   const handleAddEvent = async () => {
-    if (!newEventName || !newEventDate || !newEventOrganizer) {
-      toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
+    if (!newEventData.name || !newEventData.date || !newEventData.organizedBy) {
+      toast({ title: 'Error', description: 'Please fill out name, date, and organizer.', variant: 'destructive' });
       return;
     }
-    const newEventData = {
-      name: newEventName,
-      date: newEventDate,
-      organizedBy: newEventOrganizer,
+    const finalNewEventData = {
+      ...newEventData,
       purpose: '', // Default purpose
-      certificateUrl: newEventCertificateUrl || '',
     };
     try {
       const eventsRef = ref(db, 'events');
       const newEventRef = push(eventsRef);
-      await set(newEventRef, newEventData);
+      await set(newEventRef, finalNewEventData);
 
-      const newEventWithId: Event = { ...newEventData, id: newEventRef.key! };
+      const newEventWithId: Event = { ...finalNewEventData, id: newEventRef.key! } as Event;
       setEvents(prevEvents => [...prevEvents, newEventWithId]); 
 
       setIsAddEventOpen(false);
-      toast({ title: "Event Added", description: `${newEventName} has been created.` });
+      toast({ title: "Event Added", description: `${finalNewEventData.name} has been created.` });
       // Reset form
-      setNewEventName('');
-      setNewEventDate('');
-      setNewEventOrganizer('');
-      setNewEventCertificateUrl('');
+      setNewEventData({
+        name: '', date: '', organizedBy: '', certificateUrl: '',
+        certificateBackgroundColor: '#ffffff', certificateTextColor: '#000000',
+        organizerSignUrl: '', qrCodeUrl: '',
+      });
     } catch (e) {
       console.error("Error adding event: ", e);
       toast({ title: 'Error', description: 'Failed to add event.', variant: 'destructive' });
@@ -435,7 +440,7 @@ export default function AdminDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Events</CardTitle>
-              <CardDescription>List of all organized events.</CardDescription>
+              <CardDescription>List of all organized events. Edit an event to customize its certificate.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table className="hidden md:table">
@@ -444,7 +449,6 @@ export default function AdminDashboard() {
                     <TableHead>Name</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="hidden lg:table-cell">Organizer</TableHead>
-                    <TableHead className="hidden lg:table-cell">Certificate URL</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -454,7 +458,6 @@ export default function AdminDashboard() {
                       <TableCell className="font-medium">{event.name}</TableCell>
                       <TableCell>{event.date}</TableCell>
                       <TableCell className="hidden lg:table-cell">{event.organizedBy}</TableCell>
-                      <TableCell className="max-w-[200px] truncate hidden lg:table-cell">{event.certificateUrl || 'Not set'}</TableCell>
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -462,8 +465,8 @@ export default function AdminDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit Certificate</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete Event</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -482,13 +485,12 @@ export default function AdminDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit Certificate</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete Event</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
                       <div className="text-sm text-muted-foreground">{event.date} &middot; {event.organizedBy}</div>
-                       <div className="text-sm text-muted-foreground truncate mt-2">Cert URL: {event.certificateUrl || 'Not set'}</div>
                   </Card>
                 ))}
               </div>
@@ -500,14 +502,14 @@ export default function AdminDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Certificate Settings</CardTitle>
-              <CardDescription>Manage certificate templates for events.</CardDescription>
+              <CardDescription>Manage certificate templates for events. Go to the Events tab to edit specific templates.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Event Name</TableHead>
-                    <TableHead>Certificate URL</TableHead>
+                    <TableHead>Certificate BG Image</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -679,30 +681,53 @@ export default function AdminDashboard() {
                     Add Event
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[600px]">
                   <DialogHeader>
                     <DialogTitle>Add New Event</DialogTitle>
                     <DialogDescription>
-                      Fill in the details to create a new event.
+                      Fill in the details to create a new event and customize its certificate.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
+                  <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="event-name" className="text-right">Name</Label>
-                      <Input id="event-name" value={newEventName} onChange={(e) => setNewEventName(e.target.value)} className="col-span-3" />
+                      <Input id="event-name" value={newEventData.name} onChange={(e) => setNewEventData(p => ({...p, name: e.target.value}))} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="event-date" className="text-right">Date</Label>
-                      <Input id="event-date" type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} className="col-span-3" />
+                      <Input id="event-date" type="date" value={newEventData.date} onChange={(e) => setNewEventData(p => ({...p, date: e.target.value}))} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="event-organizer" className="text-right">Organizer</Label>
-                      <Input id="event-organizer" value={newEventOrganizer} onChange={(e) => setNewEventOrganizer(e.target.value)} className="col-span-3" />
+                      <Input id="event-organizer" value={newEventData.organizedBy} onChange={(e) => setNewEventData(p => ({...p, organizedBy: e.target.value}))} className="col-span-3" />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="event-cert-url" className="text-right">Certificate URL</Label>
-                      <Input id="event-cert-url" value={newEventCertificateUrl} onChange={(e) => setNewEventCertificateUrl(e.target.value)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
-                    </div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className='text-lg'>Certificate Design</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="event-cert-url" className="text-right">Background URL</Label>
+                          <Input id="event-cert-url" value={newEventData.certificateUrl} onChange={(e) => setNewEventData(p => ({...p, certificateUrl: e.target.value}))} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="event-cert-bg-color" className="text-right">BG Color</Label>
+                          <Input id="event-cert-bg-color" type="color" value={newEventData.certificateBackgroundColor} onChange={(e) => setNewEventData(p => ({...p, certificateBackgroundColor: e.target.value}))} className="col-span-3 h-10 p-1" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="event-cert-text-color" className="text-right">Text Color</Label>
+                          <Input id="event-cert-text-color" type="color" value={newEventData.certificateTextColor} onChange={(e) => setNewEventData(p => ({...p, certificateTextColor: e.target.value}))} className="col-span-3 h-10 p-1" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="event-cert-sign-url" className="text-right">Signature URL</Label>
+                          <Input id="event-cert-sign-url" value={newEventData.organizerSignUrl} onChange={(e) => setNewEventData(p => ({...p, organizerSignUrl: e.target.value}))} className="col-span-3" placeholder="URL for organizer's signature image" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="event-cert-qr-url" className="text-right">QR Code URL</Label>
+                          <Input id="event-cert-qr-url" value={newEventData.qrCodeUrl} onChange={(e) => setNewEventData(p => ({...p, qrCodeUrl: e.target.value}))} className="col-span-3" placeholder="URL for a custom QR code image" />
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                   <DialogFooter>
                     <Button onClick={handleAddEvent}>Save Event</Button>
@@ -830,12 +855,12 @@ export default function AdminDashboard() {
 
       {/* Edit Event Dialog */}
        <Dialog open={isEditEventOpen} onOpenChange={setIsEditEventOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Edit Event</DialogTitle>
+            <DialogTitle>Edit Event & Certificate</DialogTitle>
           </DialogHeader>
           {editingEvent && (
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
                 <Input id="name" value={editingEvent.name} onChange={(e) => setEditingEvent(prev => prev ? {...prev, name: e.target.value} : null)} className="col-span-3" />
@@ -848,10 +873,33 @@ export default function AdminDashboard() {
                 <Label htmlFor="organizedBy" className="text-right">Organizer</Label>
                 <Input id="organizedBy" value={editingEvent.organizedBy} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizedBy: e.target.value} : null)} className="col-span-3" />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="certificateUrl" className="text-right">Certificate URL</Label>
-                <Input id="certificateUrl" value={editingEvent.certificateUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateUrl: e.target.value} : null)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className='text-lg'>Certificate Design</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="certificateUrl" className="text-right">Background URL</Label>
+                    <Input id="certificateUrl" value={editingEvent.certificateUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateUrl: e.target.value} : null)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
+                  </div>
+                   <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="certificateBgColor" className="text-right">BG Color</Label>
+                    <Input id="certificateBgColor" type="color" value={editingEvent.certificateBackgroundColor || '#FFFFFF'} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateBackgroundColor: e.target.value} : null)} className="col-span-3 h-10 p-1" />
+                  </div>
+                   <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="certificateTextColor" className="text-right">Text Color</Label>
+                    <Input id="certificateTextColor" type="color" value={editingEvent.certificateTextColor || '#000000'} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateTextColor: e.target.value} : null)} className="col-span-3 h-10 p-1" />
+                  </div>
+                   <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="organizerSignUrl" className="text-right">Signature URL</Label>
+                    <Input id="organizerSignUrl" value={editingEvent.organizerSignUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizerSignUrl: e.target.value} : null)} className="col-span-3" placeholder="URL for organizer's signature image" />
+                  </div>
+                   <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="qrCodeUrl" className="text-right">QR Code URL</Label>
+                    <Input id="qrCodeUrl" value={editingEvent.qrCodeUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, qrCodeUrl: e.target.value} : null)} className="col-span-3" placeholder="URL for custom QR code image" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
           <DialogFooter>
