@@ -930,7 +930,7 @@ export default function AdminDashboard() {
 
       {/* Certificate Preview Dialog */}
       <Dialog open={!!previewEvent} onOpenChange={(isOpen) => !isOpen && setPreviewEvent(null)}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Certificate Preview: {previewEvent?.name}</DialogTitle>
             <DialogDescription>This is a sample of how the certificate will look for this event.</DialogDescription>
