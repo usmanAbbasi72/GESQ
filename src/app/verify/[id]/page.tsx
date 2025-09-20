@@ -26,15 +26,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = params.id;
   const { member, event } = await getMemberData(id);
 
-  if (!member || !event) {
+  if (!member) {
     return {
       title: 'Verification Failed',
       description: `No record found for ID: ${id}`,
     };
   }
 
-  const title = `Verified: ${member.userName} - ${event.name}`;
-  const description = `${member.userName} is verified as a ${member.role} for the "${event.name}" event organized by ${event.organizedBy}.`;
+  const title = `Verified: ${member.userName} - ${event?.name || 'GreenPass Event'}`;
+  const description = `${member.userName} is verified as a ${member.role} for the "${event?.name || 'event'}" organized by ${event?.organizedBy || 'Green Environmental Society'}.`;
+  const imageUrl = event?.certificateUrl || 'https://picsum.photos/seed/env-cert/1200/800';
   
   return {
     title,
@@ -44,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: description,
       images: [
         {
-          url: event.certificateUrl || 'https://picsum.photos/seed/env-cert/1200/800',
+          url: imageUrl,
           width: 1200,
           height: 800,
           alt: `Certificate for ${member.userName}`,
@@ -55,7 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: 'summary_large_image',
       title: title,
       description: description,
-      images: [event.certificateUrl || 'https://picsum.photos/seed/env-cert/1200/800'],
+      images: [imageUrl],
     },
   };
 }
