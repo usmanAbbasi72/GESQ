@@ -518,19 +518,19 @@ export default function AdminDashboard() {
               <CardDescription>Manage certificate templates for events. Go to the Events tab to edit specific templates.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Event Name</TableHead>
                     <TableHead>Certificate BG Image</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right w-[120px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {events.map((event) => (
                     <TableRow key={event.id}>
-                      <TableCell className="font-medium">{event.name}</TableCell>
-                      <TableCell className="truncate md:max-w-full">
+                      <TableCell className="font-medium truncate">{event.name}</TableCell>
+                      <TableCell className="truncate">
                         {event.certificateUrl ? (
                           <a href={event.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
                             {event.certificateUrl}
