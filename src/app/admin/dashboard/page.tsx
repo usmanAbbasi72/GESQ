@@ -234,7 +234,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAddMember = async () => => {
+  const handleAddMember = async () => {
     if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberEmail || !newMemberRole || !newMemberEvent) {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
