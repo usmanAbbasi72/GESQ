@@ -575,7 +575,7 @@ export default function AdminDashboard() {
       <div className="flex min-h-screen">
       <Sidebar>
         <SidebarHeader>
-          <h1 className="text-xl font-semibold font-headline">Admin Panel</h1>
+          <h1 className="text-xl font-semibold font-headline text-white md:text-inherit">Admin Panel</h1>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
