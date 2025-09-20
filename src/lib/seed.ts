@@ -1,20 +1,15 @@
 // DO NOT MODIFY THIS FILE
 // This file is used to seed the database with initial data.
 // To run this script, run `npm run seed` in your terminal.
-
+import 'dotenv/config'
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set } from 'firebase/database';
+import { firebaseConfig, isFirebaseConfigValid } from './firebase';
 
-const firebaseConfig = {
-  "projectId": "studio-3766857156-b0e75",
-  "appId": "1:810566605670:web:2874eb227af6b8405a06a7",
-  "storageBucket": "studio-3766857156-b0e75.firebasestorage.app",
-  "apiKey": "AIzaSyBOGlG8Yuc7OsRtMvfxAJzAhjmClOKDMXQ",
-  "authDomain": "studio-3766857156-b0e75.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "810566605670",
-  "databaseURL": "https://studio-3766857156-b0e75-default-rtdb.firebaseio.com"
-};
+if (!isFirebaseConfigValid(firebaseConfig)) {
+    console.error('Firebase config is invalid. Make sure all required NEXT_PUBLIC_ environment variables are set in your .env file before running the seed script.');
+    process.exit(1);
+}
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -66,13 +61,15 @@ const pendingMembers = {
         userName: "Sana Javed",
         fatherName: "Javed Iqbal",
         cnic: "42201-4567890-4",
-        role: "Participant"
+        role: "Participant",
+        event: "Beach Cleanup Drive",
     },
     "PEND002": {
         userName: "Usman Malik",
         fatherName: "Malik Shah",
         cnic: "42201-5678901-5",
-        role: "Volunteer"
+        role: "Volunteer",
+        event: "Beach Cleanup Drive",
     }
 };
 
