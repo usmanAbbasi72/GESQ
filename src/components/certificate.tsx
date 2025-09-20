@@ -89,7 +89,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
         </div>
 
         {/* Footer Section */}
-        <div className="w-full flex justify-between items-end text-[8px] sm:text-xs md:text-sm pt-4">
+        <div className="w-full flex justify-between items-end text-[8px] sm:text-xs md:text-sm pt-4 gap-4">
           <div className='flex-1 flex flex-col items-center'>
             {event.organizerSignUrl ? (
               <img src={event.organizerSignUrl} alt="Organizer Signature" className="h-6 sm:h-8 md:h-10 w-auto object-contain" crossOrigin='anonymous' onLoad={handleAssetLoad} onError={handleAssetLoad}/>
