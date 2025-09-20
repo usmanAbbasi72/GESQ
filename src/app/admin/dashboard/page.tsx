@@ -530,7 +530,7 @@ export default function AdminDashboard() {
                   {events.map((event) => (
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.name}</TableCell>
-                      <TableCell className="truncate max-w-[200px] md:max-w-full">
+                      <TableCell className="truncate md:max-w-full">
                         {event.certificateUrl ? (
                           <a href={event.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
                             {event.certificateUrl}
@@ -930,7 +930,7 @@ export default function AdminDashboard() {
 
       {/* Certificate Preview Dialog */}
       <Dialog open={!!previewEvent} onOpenChange={(isOpen) => !isOpen && setPreviewEvent(null)}>
-        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Certificate Preview: {previewEvent?.name}</DialogTitle>
             <DialogDescription>This is a sample of how the certificate will look for this event.</DialogDescription>
