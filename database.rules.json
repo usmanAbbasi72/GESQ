@@ -1,0 +1,28 @@
+
+{
+  "rules": {
+    "members": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$uid": {
+        ".validate": "newData.hasChildren(['userName', 'fatherName', 'cnic', 'role', 'approved']) && newData.child('userName').isString() && newData.child('fatherName').isString() && newData.child('cnic').isString() && newData.child('role').isString() && newData.child('approved').isBoolean()"
+      }
+    },
+    "pendingMembers": {
+      ".read": "auth != null",
+      ".write": true, 
+      "$uid": {
+        ".validate": "newData.hasChildren(['userName', 'fatherName', 'cnic', 'role']) && newData.child('userName').isString() && newData.child('fatherName').isString() && newData.child('cnic').isString() && newData.child('role').isString()"
+      }
+    },
+    "events": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$uid": {
+        ".validate": "newData.hasChildren(['name', 'date', 'organizedBy']) && newData.child('name').isString() && newData.child('date').isString() && newData.child('organizedBy').isString()"
+      }
+    },
+    ".read": "auth != null",
+    ".write": "auth != null"
+  }
+}

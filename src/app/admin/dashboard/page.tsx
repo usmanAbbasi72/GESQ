@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings, Award, Eye, Loader2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings, Award, Eye, Loader2, Search, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, LayoutDashboard, UserCheck, UserX } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -18,10 +19,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import Certificate from '@/components/certificate';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
 
-type DashboardView = 'members' | 'pending' | 'events' | 'settings' | 'certificates';
+type DashboardView = 'overview' | 'members' | 'pending' | 'events' | 'certificates' | 'settings';
 
 const sampleMember: Member = {
   id: 'GES-SAMPLE',
@@ -33,14 +35,21 @@ const sampleMember: Member = {
   event: '',
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [members, setMembers] = React.useState<Member[]>([]);
   const [pendingMembers, setPendingMembers] = React.useState<PendingMember[]>([]);
   const [events, setEvents] = React.useState<Event[]>([]);
   const [dbStatus, setDbStatus] = React.useState(false);
-  const [view, setView] = React.useState<DashboardView>('members');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [view, setView] = React.useState<DashboardView>('overview');
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isProcessing, setIsProcessing] = React.useState(false);
+
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [selectedPending, setSelectedPending] = React.useState<string[]>([]);
 
   const [previewEvent, setPreviewEvent] = React.useState<Event | null>(null);
 
@@ -104,7 +113,7 @@ export default function AdminDashboard() {
   });
 
   const handleApprove = async (pendingMember: PendingMember) => {
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       const newMemberId = `GES${String(members.length + pendingMembers.length + 101).padStart(3, '0')}`;
       const newMember: Omit<Member, 'id'> = {
@@ -130,28 +139,72 @@ export default function AdminDashboard() {
       console.error("Error approving member:", e);
       toast({ title: 'Error', description: 'Failed to approve member.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
-  const handleReject = async (pendingMember: PendingMember) => {
-    setIsLoading(true);
+  const handleReject = async (pendingMemberId: string) => {
+    setIsProcessing(true);
+    const memberToReject = pendingMembers.find(m => m.id === pendingMemberId);
     try {
-      const pendingMemberRef = ref(db, `pendingMembers/${pendingMember.id}`);
+      const pendingMemberRef = ref(db, `pendingMembers/${pendingMemberId}`);
       await remove(pendingMemberRef);
 
-      setPendingMembers(prev => prev.filter(m => m.id !== pendingMember.id));
-      toast({ title: 'Member Rejected', description: `${pendingMember.userName} has been rejected.`, variant: 'destructive' });
+      setPendingMembers(prev => prev.filter(m => m.id !== pendingMemberId));
+      toast({ title: 'Member Rejected', description: `${memberToReject?.userName || 'Member'} has been rejected.`, variant: 'destructive' });
     } catch (e) {
       console.error("Error rejecting member:", e);
       toast({ title: 'Error', description: 'Failed to reject member.', variant: 'destructive' });
     } finally {
-        setIsLoading(false);
+        setIsProcessing(false);
     }
   };
   
+  const handleBulkActions = async (action: 'approve' | 'reject') => {
+    setIsProcessing(true);
+    const selected = pendingMembers.filter(m => selectedPending.includes(m.id));
+    if (selected.length === 0) {
+      toast({ title: 'No members selected', description: 'Please select members to perform this action.', variant: 'destructive' });
+      setIsProcessing(false);
+      return;
+    }
+    
+    try {
+      if (action === 'approve') {
+        const approvalPromises = selected.map(async (member) => {
+          const newMemberId = `GES${String(members.length + pendingMembers.length + 101 + Math.random()).padStart(3, '0')}`;
+          const newMember: Omit<Member, 'id'> = {
+            userName: member.userName, fatherName: member.fatherName, cnic: member.cnic,
+            role: member.role, approved: true, event: member.event || '',
+          };
+          await set(ref(db, `members/${newMemberId}`), newMember);
+          await remove(ref(db, `pendingMembers/${member.id}`));
+          return { ...newMember, id: newMemberId };
+        });
+        const newApprovedMembers = await Promise.all(approvalPromises);
+
+        setMembers(prev => [...prev, ...newApprovedMembers]);
+        setPendingMembers(prev => prev.filter(m => !selectedPending.includes(m.id)));
+        toast({ title: 'Bulk Approve Successful', description: `${selected.length} members have been approved.` });
+
+      } else if (action === 'reject') {
+        const rejectionPromises = selected.map(member => remove(ref(db, `pendingMembers/${member.id}`)));
+        await Promise.all(rejectionPromises);
+
+        setPendingMembers(prev => prev.filter(m => !selectedPending.includes(m.id)));
+        toast({ title: 'Bulk Reject Successful', description: `${selected.length} members have been rejected.`, variant: 'destructive' });
+      }
+      setSelectedPending([]);
+    } catch (e) {
+      console.error(`Error during bulk ${action}:`, e);
+      toast({ title: `Bulk ${action} failed`, description: 'An error occurred. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleDelete = async (member: Member) => {
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       const memberRef = ref(db, `members/${member.id}`);
       await remove(memberRef);
@@ -160,12 +213,12 @@ export default function AdminDashboard() {
     } catch (e) {
        toast({ title: 'Error', description: 'Failed to delete member.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
   
   const handleDeleteEvent = async (event: Event) => {
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       const eventRef = ref(db, `events/${event.id}`);
       await remove(eventRef);
@@ -174,7 +227,7 @@ export default function AdminDashboard() {
     } catch(e) {
       toast({ title: 'Error', description: 'Failed to delete event.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -192,7 +245,7 @@ export default function AdminDashboard() {
       event: newMemberEvent,
     };
     
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
         const pendingMembersRef = ref(db, 'pendingMembers');
         const newMemberRef = push(pendingMembersRef);
@@ -213,7 +266,7 @@ export default function AdminDashboard() {
       console.error("Error adding member:", e);
       toast({ title: 'Error', description: 'Failed to add member.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -224,7 +277,7 @@ export default function AdminDashboard() {
 
   const handleUpdateMember = async () => {
     if (!editingMember) return;
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       const { id, ...memberToSave } = editingMember;
       const memberRef = ref(db, `members/${id}`);
@@ -238,7 +291,7 @@ export default function AdminDashboard() {
       console.error("Error updating member:", e);
       toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -249,7 +302,7 @@ export default function AdminDashboard() {
 
   const handleUpdatePendingMember = async () => {
     if (!editingPendingMember) return;
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       const { id, ...memberToSave } = editingPendingMember;
       const pendingMemberRef = ref(db, `pendingMembers/${id}`);
@@ -267,7 +320,7 @@ export default function AdminDashboard() {
        console.error("Error updating pending member:", e);
        toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
   
@@ -278,7 +331,7 @@ export default function AdminDashboard() {
 
   const handleUpdateEvent = async () => {
     if (!editingEvent) return;
-    setIsLoading(true);
+    setIsProcessing(true);
      try {
       const { id, ...eventToSave } = editingEvent;
       const eventRef = ref(db, `events/${id}`);
@@ -292,7 +345,7 @@ export default function AdminDashboard() {
       console.error("Error updating event:", e);
       toast({ title: 'Error', description: 'Failed to update event.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
   
@@ -304,7 +357,7 @@ export default function AdminDashboard() {
     const finalNewEventData = {
       ...newEventData,
     };
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       const eventsRef = ref(db, 'events');
       const newEventRef = push(eventsRef);
@@ -325,12 +378,59 @@ export default function AdminDashboard() {
       console.error("Error adding event: ", e);
       toast({ title: 'Error', description: 'Failed to add event.', variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
+
+  const filteredMembers = members.filter(member =>
+    member.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.cnic.includes(searchQuery)
+  );
+
+  const filteredPendingMembers = pendingMembers.filter(member =>
+    member.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.cnic.includes(searchQuery)
+  );
+
+  const getPaginatedData = <T,>(data: T[]) => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return data.slice(startIndex, endIndex);
+  };
+  
+  const PaginationControls = ({ totalItems }: { totalItems: number }) => {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <span className="text-sm text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1 || isProcessing}>
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isProcessing}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || isProcessing}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || isProcessing}>
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+    setSelectedPending([]);
+  }, [view, searchQuery]);
   
   const renderContent = () => {
-    if (isLoading && members.length === 0 && pendingMembers.length === 0 && events.length === 0) {
+    if (isLoading) {
       return (
          <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -339,12 +439,51 @@ export default function AdminDashboard() {
     }
 
     switch(view) {
+      case 'overview':
+        return (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{members.length}</div>
+                  <p className="text-xs text-muted-foreground">approved members</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+                  <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{pendingMembers.length}</div>
+                  <p className="text-xs text-muted-foreground">members awaiting approval</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{events.length}</div>
+                   <p className="text-xs text-muted-foreground">events organized</p>
+                </CardContent>
+              </Card>
+          </div>
+        );
       case 'members':
         return (
           <Card>
             <CardHeader>
               <CardTitle>Approved Members</CardTitle>
               <CardDescription>List of all verified participants and staff.</CardDescription>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input type="search" placeholder="Search by name, ID, or CNIC..." className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              </div>
             </CardHeader>
             <CardContent>
               <Table className="hidden md:table">
@@ -360,7 +499,7 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {members.map((member) => (
+                  {getPaginatedData(filteredMembers).map((member) => (
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.id}</TableCell>
                       <TableCell>{member.userName}</TableCell>
@@ -371,12 +510,12 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isProcessing}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)} disabled={isLoading}>Delete</DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)} disabled={isProcessing}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -384,19 +523,20 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
+              <PaginationControls totalItems={filteredMembers.length} />
               <div className="grid gap-4 md:hidden">
-                {members.map(member => (
+                {getPaginatedData(filteredMembers).map(member => (
                   <Card key={member.id} className="p-4">
                      <div className="flex items-center justify-between">
                         <div className="font-medium">{member.userName}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isProcessing}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)} disabled={isLoading}>Delete</DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)} disabled={isProcessing}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
@@ -418,11 +558,39 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle>Pending Members</CardTitle>
               <CardDescription>List of members awaiting approval.</CardDescription>
+              <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input type="search" placeholder="Search by name or CNIC..." className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                  </div>
+                  <div className="flex gap-2">
+                      <Button onClick={() => handleBulkActions('approve')} disabled={selectedPending.length === 0 || isProcessing}>
+                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <UserCheck className="mr-2 h-4 w-4" />}
+                         Approve Selected
+                      </Button>
+                      <Button variant="destructive" onClick={() => handleBulkActions('reject')} disabled={selectedPending.length === 0 || isProcessing}>
+                         {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <UserX className="mr-2 h-4 w-4" />}
+                         Reject Selected
+                      </Button>
+                  </div>
+              </div>
             </CardHeader>
             <CardContent>
               <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={selectedPending.length > 0 && selectedPending.length === getPaginatedData(filteredPendingMembers).length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedPending(getPaginatedData(filteredPendingMembers).map(m => m.id));
+                          } else {
+                            setSelectedPending([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead className="hidden lg:table-cell">Father's Name</TableHead>
                     <TableHead className="hidden lg:table-cell">CNIC</TableHead>
@@ -432,8 +600,16 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingMembers.map((member) => (
-                    <TableRow key={member.id}>
+                  {getPaginatedData(filteredPendingMembers).map((member) => (
+                    <TableRow key={member.id} data-state={selectedPending.includes(member.id) && "selected"}>
+                      <TableCell>
+                        <Checkbox
+                           checked={selectedPending.includes(member.id)}
+                           onCheckedChange={(checked) => {
+                            setSelectedPending(prev => checked ? [...prev, member.id] : prev.filter(id => id !== member.id));
+                           }}
+                        />
+                      </TableCell>
                       <TableCell>{member.userName}</TableCell>
                       <TableCell className="hidden lg:table-cell">{member.fatherName}</TableCell>
                       <TableCell className="hidden lg:table-cell">{member.cnic}</TableCell>
@@ -442,13 +618,13 @@ export default function AdminDashboard() {
                        <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isProcessing}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isLoading}>Approve</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)} disabled={isLoading}>Reject</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isProcessing}>Approve</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member.id)} disabled={isProcessing}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -456,26 +632,35 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
+              <PaginationControls totalItems={filteredPendingMembers.length} />
               <div className="grid gap-4 md:hidden">
-                 {pendingMembers.map(member => (
-                  <Card key={member.id} className="p-4">
+                 {getPaginatedData(filteredPendingMembers).map(member => (
+                  <Card key={member.id} className="p-4" data-state={selectedPending.includes(member.id) && "selected"}>
                      <div className="flex items-center justify-between">
-                        <div className="font-medium">{member.userName}</div>
+                        <div className="flex items-center gap-4">
+                           <Checkbox
+                             checked={selectedPending.includes(member.id)}
+                             onCheckedChange={(checked) => {
+                               setSelectedPending(prev => checked ? [...prev, member.id] : prev.filter(id => id !== member.id));
+                             }}
+                           />
+                           <span className="font-medium">{member.userName}</span>
+                        </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isProcessing}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isLoading}>Approve</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)} disabled={isLoading}>Reject</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isProcessing}>Approve</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member.id)} disabled={isProcessing}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
-                      <div className="text-sm text-muted-foreground">{member.fatherName}</div>
-                      <div className="text-sm text-muted-foreground">{member.cnic}</div>
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="text-sm text-muted-foreground ml-10">{member.fatherName}</div>
+                      <div className="text-sm text-muted-foreground ml-10">{member.cnic}</div>
+                      <div className="flex items-center justify-between mt-2 ml-10">
                         <Badge variant="secondary">{member.role}</Badge>
                          <div className="text-sm">{member.event || 'N/A'}</div>
                       </div>
@@ -511,12 +696,12 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isProcessing}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)} disabled={isLoading}>Edit Certificate</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)} disabled={isLoading}>Delete Event</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)} disabled={isProcessing}>Edit Certificate</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)} disabled={isProcessing}>Delete Event</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -531,12 +716,12 @@ export default function AdminDashboard() {
                         <div className="font-medium">{event.name}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isProcessing}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)} disabled={isLoading}>Edit Certificate</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)} disabled={isLoading}>Delete Event</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)} disabled={isProcessing}>Edit Certificate</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)} disabled={isProcessing}>Delete Event</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
@@ -555,7 +740,7 @@ export default function AdminDashboard() {
               <CardDescription>Manage certificate templates for events. Go to the Events tab to edit specific templates.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table className="table-fixed w-full">
+              <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Event Name</TableHead>
@@ -577,7 +762,7 @@ export default function AdminDashboard() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => setPreviewEvent(event)} disabled={isLoading}>
+                        <Button variant="outline" size="sm" onClick={() => setPreviewEvent(event)} disabled={isProcessing}>
                           <Eye className="mr-2 h-4 w-4" />
                            Preview
                         </Button>
@@ -616,6 +801,12 @@ export default function AdminDashboard() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => setView('overview')} isActive={view === 'overview'} className="text-white md:text-inherit">
+                <LayoutDashboard/>
+                Overview
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => setView('members')} isActive={view === 'members'} className="text-white md:text-inherit">
                 <Users/>
@@ -661,19 +852,20 @@ export default function AdminDashboard() {
               <SidebarTrigger />
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-headline">
+                  {view === 'overview' && 'Overview'}
                   {view === 'members' && 'Approved Members'}
                   {view === 'pending' && 'Pending Members'}
                   {view === 'events' && 'Events'}
                   {view === 'certificates' && 'Certificates'}
                   {view === 'settings' && 'Settings'}
                 </h1>
-                <p className="text-sm sm:text-base text-muted-foreground">Manage members and events for GreenPass.</p>
+                <p className="text-sm sm:text-base text-muted-foreground">Manage your GreenPass system.</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
                 <DialogTrigger asChild>
-                  <Button disabled={isLoading}>
+                  <Button disabled={isProcessing}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Member
                   </Button>
@@ -727,8 +919,8 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleAddMember} disabled={isLoading}>
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button onClick={handleAddMember} disabled={isProcessing}>
+                      {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Save Member
                     </Button>
                   </DialogFooter>
@@ -736,7 +928,7 @@ export default function AdminDashboard() {
               </Dialog>
               <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" disabled={isLoading}>
+                  <Button variant="outline" disabled={isProcessing}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Event
                   </Button>
@@ -790,8 +982,8 @@ export default function AdminDashboard() {
                     </Card>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleAddEvent} disabled={isLoading}>
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button onClick={handleAddEvent} disabled={isProcessing}>
+                      {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Save Event
                     </Button>
                   </DialogFooter>
@@ -855,8 +1047,8 @@ export default function AdminDashboard() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdateMember} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleUpdateMember} disabled={isProcessing}>
+              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save changes
             </Button>
           </DialogFooter>
@@ -914,8 +1106,8 @@ export default function AdminDashboard() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdatePendingMember} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleUpdatePendingMember} disabled={isProcessing}>
+              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save changes
             </Button>
           </DialogFooter>
@@ -972,8 +1164,8 @@ export default function AdminDashboard() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdateEvent} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleUpdateEvent} disabled={isProcessing}>
+              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save changes
             </Button>
           </DialogFooter>
