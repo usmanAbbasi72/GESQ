@@ -30,6 +30,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.externals = [...config.externals, 'react/jsx-dev-runtime'];
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
