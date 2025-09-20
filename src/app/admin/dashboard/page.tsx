@@ -952,15 +952,15 @@ export default function AdminDashboard() {
                   <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="event-name" className="text-right">Name</Label>
-                      <Input id="event-name" value={newEventData.name} onChange={(e) => setNewEventData(p => ({...p, name: e.target.value}))} className="col-span-3" />
+                      <Input id="event-name" value={newEventData.name ?? ''} onChange={(e) => setNewEventData(p => ({...p, name: e.target.value}))} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="event-date" className="text-right">Date</Label>
-                      <Input id="event-date" type="date" value={newEventData.date} onChange={(e) => setNewEventData(p => ({...p, date: e.target.value}))} className="col-span-3" />
+                      <Input id="event-date" type="date" value={newEventData.date ?? ''} onChange={(e) => setNewEventData(p => ({...p, date: e.target.value}))} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="event-organizer" className="text-right">Organizer</Label>
-                      <Input id="event-organizer" value={newEventData.organizedBy} onChange={(e) => setNewEventData(p => ({...p, organizedBy: e.target.value}))} className="col-span-3" />
+                      <Input id="event-organizer" value={newEventData.organizedBy ?? ''} onChange={(e) => setNewEventData(p => ({...p, organizedBy: e.target.value}))} className="col-span-3" />
                     </div>
                     <Card>
                       <CardHeader>
@@ -969,23 +969,23 @@ export default function AdminDashboard() {
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="event-cert-url" className="text-right">Background URL</Label>
-                          <Input id="event-cert-url" value={newEventData.certificateUrl} onChange={(e) => setNewEventData(p => ({...p, certificateUrl: e.target.value}))} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
+                          <Input id="event-cert-url" value={newEventData.certificateUrl ?? ''} onChange={(e) => setNewEventData(p => ({...p, certificateUrl: e.target.value}))} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="event-cert-bg-color" className="text-right">BG Color</Label>
-                          <Input id="event-cert-bg-color" type="color" value={newEventData.certificateBackgroundColor} onChange={(e) => setNewEventData(p => ({...p, certificateBackgroundColor: e.target.value}))} className="col-span-3 h-10 p-1" />
+                          <Input id="event-cert-bg-color" type="color" value={newEventData.certificateBackgroundColor ?? '#ffffff'} onChange={(e) => setNewEventData(p => ({...p, certificateBackgroundColor: e.target.value}))} className="col-span-3 h-10 p-1" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="event-cert-text-color" className="text-right">Text Color</Label>
-                          <Input id="event-cert-text-color" type="color" value={newEventData.certificateTextColor} onChange={(e) => setNewEventData(p => ({...p, certificateTextColor: e.target.value}))} className="col-span-3 h-10 p-1" />
+                          <Input id="event-cert-text-color" type="color" value={newEventData.certificateTextColor ?? '#000000'} onChange={(e) => setNewEventData(p => ({...p, certificateTextColor: e.target.value}))} className="col-span-3 h-10 p-1" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="event-cert-sign-url" className="text-right">Signature URL</Label>
-                          <Input id="event-cert-sign-url" value={newEventData.organizerSignUrl} onChange={(e) => setNewEventData(p => ({...p, organizerSignUrl: e.target.value}))} className="col-span-3" placeholder="URL for organizer's signature image" />
+                          <Input id="event-cert-sign-url" value={newEventData.organizerSignUrl ?? ''} onChange={(e) => setNewEventData(p => ({...p, organizerSignUrl: e.target.value}))} className="col-span-3" placeholder="URL for organizer's signature image" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="event-cert-qr-url" className="text-right">QR Code URL</Label>
-                          <Input id="event-cert-qr-url" value={newEventData.qrCodeUrl} onChange={(e) => setNewEventData(p => ({...p, qrCodeUrl: e.target.value}))} className="col-span-3" placeholder="URL for a custom QR code image" />
+                          <Input id="event-cert-qr-url" value={newEventData.qrCodeUrl ?? ''} onChange={(e) => setNewEventData(p => ({...p, qrCodeUrl: e.target.value}))} className="col-span-3" placeholder="URL for a custom QR code image" />
                         </div>
                       </CardContent>
                     </Card>
@@ -1141,15 +1141,15 @@ export default function AdminDashboard() {
             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" value={editingEvent.name} onChange={(e) => setEditingEvent(prev => prev ? {...prev, name: e.target.value} : null)} className="col-span-3" />
+                <Input id="name" value={editingEvent.name ?? ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, name: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">Date</Label>
-                <Input id="date" type="date" value={editingEvent.date} onChange={(e) => setEditingEvent(prev => prev ? {...prev, date: e.target.value} : null)} className="col-span-3" />
+                <Input id="date" type="date" value={editingEvent.date ?? ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, date: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="organizedBy" className="text-right">Organizer</Label>
-                <Input id="organizedBy" value={editingEvent.organizedBy} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizedBy: e.target.value} : null)} className="col-span-3" />
+                <Input id="organizedBy" value={editingEvent.organizedBy ?? ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizedBy: e.target.value} : null)} className="col-span-3" />
               </div>
               <Card>
                 <CardHeader>
@@ -1158,23 +1158,23 @@ export default function AdminDashboard() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="certificateUrl" className="text-right">Background URL</Label>
-                    <Input id="certificateUrl" value={editingEvent.certificateUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateUrl: e.target.value} : null)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
+                    <Input id="certificateUrl" value={editingEvent.certificateUrl ?? ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateUrl: e.target.value} : null)} className="col-span-3" placeholder="https://picsum.photos/seed/cert/1200/800" />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="certificateBgColor" className="text-right">BG Color</Label>
-                    <Input id="certificateBgColor" type="color" value={editingEvent.certificateBackgroundColor || '#FFFFFF'} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateBackgroundColor: e.target.value} : null)} className="col-span-3 h-10 p-1" />
+                    <Input id="certificateBgColor" type="color" value={editingEvent.certificateBackgroundColor ?? '#FFFFFF'} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateBackgroundColor: e.target.value} : null)} className="col-span-3 h-10 p-1" />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="certificateTextColor" className="text-right">Text Color</Label>
-                    <Input id="certificateTextColor" type="color" value={editingEvent.certificateTextColor || '#000000'} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateTextColor: e.target.value} : null)} className="col-span-3 h-10 p-1" />
+                    <Input id="certificateTextColor" type="color" value={editingEvent.certificateTextColor ?? '#000000'} onChange={(e) => setEditingEvent(prev => prev ? {...prev, certificateTextColor: e.target.value} : null)} className="col-span-3 h-10 p-1" />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="organizerSignUrl" className="text-right">Signature URL</Label>
-                    <Input id="organizerSignUrl" value={editingEvent.organizerSignUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizerSignUrl: e.target.value} : null)} className="col-span-3" placeholder="URL for organizer's signature image" />
+                    <Input id="organizerSignUrl" value={editingEvent.organizerSignUrl ?? ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, organizerSignUrl: e.target.value} : null)} className="col-span-3" placeholder="URL for organizer's signature image" />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="qrCodeUrl" className="text-right">QR Code URL</Label>
-                    <Input id="qrCodeUrl" value={editingEvent.qrCodeUrl || ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, qrCodeUrl: e.target.value} : null)} className="col-span-3" placeholder="URL for custom QR code image" />
+                    <Input id="qrCodeUrl" value={editingEvent.qrCodeUrl ?? ''} onChange={(e) => setEditingEvent(prev => prev ? {...prev, qrCodeUrl: e.target.value} : null)} className="col-span-3" placeholder="URL for custom QR code image" />
                   </div>
                 </CardContent>
               </Card>
