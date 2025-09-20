@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
-import { db } from "@/lib/firebase";
+import { app } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -43,7 +43,7 @@ export function LoginForm() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const auth = getAuth();
+    const auth = getAuth(app);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       login(auth.currentUser); // Pass user to context
