@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings, Award, Eye } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Users, CheckSquare, Calendar, Settings, Award, Eye, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
-import { Textarea } from '@/components/ui/textarea';
 import Certificate from '@/components/certificate';
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
@@ -41,11 +40,13 @@ export default function AdminDashboard() {
   const [events, setEvents] = React.useState<Event[]>([]);
   const [dbStatus, setDbStatus] = React.useState(false);
   const [view, setView] = React.useState<DashboardView>('members');
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const [previewEvent, setPreviewEvent] = React.useState<Event | null>(null);
 
   React.useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
       try {
         const [membersData, pendingData, eventsData] = await Promise.all([
           fetchMembers(),
@@ -58,6 +59,8 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error("Error loading data: ", error);
         toast({ title: 'Error Loading Data', description: 'Could not fetch data from the database. Please check your connection and security rules.', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
       }
     };
     loadData();
@@ -101,6 +104,7 @@ export default function AdminDashboard() {
   });
 
   const handleApprove = async (pendingMember: PendingMember) => {
+    setIsLoading(true);
     try {
       const newMemberId = `GES${String(members.length + pendingMembers.length + 101).padStart(3, '0')}`;
       const newMember: Omit<Member, 'id'> = {
@@ -125,10 +129,13 @@ export default function AdminDashboard() {
     } catch(e) {
       console.error("Error approving member:", e);
       toast({ title: 'Error', description: 'Failed to approve member.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleReject = async (pendingMember: PendingMember) => {
+    setIsLoading(true);
     try {
       const pendingMemberRef = ref(db, `pendingMembers/${pendingMember.id}`);
       await remove(pendingMemberRef);
@@ -138,10 +145,13 @@ export default function AdminDashboard() {
     } catch (e) {
       console.error("Error rejecting member:", e);
       toast({ title: 'Error', description: 'Failed to reject member.', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
     }
   };
   
   const handleDelete = async (member: Member) => {
+    setIsLoading(true);
     try {
       const memberRef = ref(db, `members/${member.id}`);
       await remove(memberRef);
@@ -149,10 +159,13 @@ export default function AdminDashboard() {
       toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
     } catch (e) {
        toast({ title: 'Error', description: 'Failed to delete member.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const handleDeleteEvent = async (event: Event) => {
+    setIsLoading(true);
     try {
       const eventRef = ref(db, `events/${event.id}`);
       await remove(eventRef);
@@ -160,6 +173,8 @@ export default function AdminDashboard() {
       toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
     } catch(e) {
       toast({ title: 'Error', description: 'Failed to delete event.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -177,6 +192,7 @@ export default function AdminDashboard() {
       event: newMemberEvent,
     };
     
+    setIsLoading(true);
     try {
         const pendingMembersRef = ref(db, 'pendingMembers');
         const newMemberRef = push(pendingMembersRef);
@@ -196,6 +212,8 @@ export default function AdminDashboard() {
     } catch (e) {
       console.error("Error adding member:", e);
       toast({ title: 'Error', description: 'Failed to add member.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -206,6 +224,7 @@ export default function AdminDashboard() {
 
   const handleUpdateMember = async () => {
     if (!editingMember) return;
+    setIsLoading(true);
     try {
       const { id, ...memberToSave } = editingMember;
       const memberRef = ref(db, `members/${id}`);
@@ -218,6 +237,8 @@ export default function AdminDashboard() {
     } catch(e) {
       console.error("Error updating member:", e);
       toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -228,6 +249,7 @@ export default function AdminDashboard() {
 
   const handleUpdatePendingMember = async () => {
     if (!editingPendingMember) return;
+    setIsLoading(true);
     try {
       const { id, ...memberToSave } = editingPendingMember;
       const pendingMemberRef = ref(db, `pendingMembers/${id}`);
@@ -244,6 +266,8 @@ export default function AdminDashboard() {
     } catch(e) {
        console.error("Error updating pending member:", e);
        toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -254,6 +278,7 @@ export default function AdminDashboard() {
 
   const handleUpdateEvent = async () => {
     if (!editingEvent) return;
+    setIsLoading(true);
      try {
       const { id, ...eventToSave } = editingEvent;
       const eventRef = ref(db, `events/${id}`);
@@ -266,6 +291,8 @@ export default function AdminDashboard() {
     } catch(e) {
       console.error("Error updating event:", e);
       toast({ title: 'Error', description: 'Failed to update event.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -278,6 +305,7 @@ export default function AdminDashboard() {
       ...newEventData,
       purpose: '', // Default purpose
     };
+    setIsLoading(true);
     try {
       const eventsRef = ref(db, 'events');
       const newEventRef = push(eventsRef);
@@ -297,10 +325,20 @@ export default function AdminDashboard() {
     } catch (e) {
       console.error("Error adding event: ", e);
       toast({ title: 'Error', description: 'Failed to add event.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const renderContent = () => {
+    if (isLoading && members.length === 0 && pendingMembers.length === 0 && events.length === 0) {
+      return (
+         <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
     switch(view) {
       case 'members':
         return (
@@ -334,12 +372,12 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)}>Delete</DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)} disabled={isLoading}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -354,12 +392,12 @@ export default function AdminDashboard() {
                         <div className="font-medium">{member.userName}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)}>Delete</DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member)} disabled={isLoading}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
@@ -405,13 +443,13 @@ export default function AdminDashboard() {
                        <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isLoading}>Approve</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)} disabled={isLoading}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -426,13 +464,13 @@ export default function AdminDashboard() {
                         <div className="font-medium">{member.userName}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleApprove(member)}>Approve</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)}>Reject</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isLoading}>Approve</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isLoading}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member)} disabled={isLoading}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
@@ -474,12 +512,12 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit Certificate</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete Event</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)} disabled={isLoading}>Edit Certificate</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)} disabled={isLoading}>Delete Event</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </TableCell>
@@ -494,12 +532,12 @@ export default function AdminDashboard() {
                         <div className="font-medium">{event.name}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)}>Edit Certificate</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)}>Delete Event</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditEvent(event)} disabled={isLoading}>Edit Certificate</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEvent(event)} disabled={isLoading}>Delete Event</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
@@ -540,7 +578,7 @@ export default function AdminDashboard() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => setPreviewEvent(event)}>
+                        <Button variant="outline" size="sm" onClick={() => setPreviewEvent(event)} disabled={isLoading}>
                           <Eye className="mr-2 h-4 w-4" />
                            Preview
                         </Button>
@@ -636,7 +674,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col sm:flex-row gap-2">
               <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button disabled={isLoading}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Member
                   </Button>
@@ -690,13 +728,16 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleAddMember}>Save Member</Button>
+                    <Button onClick={handleAddMember} disabled={isLoading}>
+                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Member
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
               <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">
+                  <Button variant="outline" disabled={isLoading}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Event
                   </Button>
@@ -750,7 +791,10 @@ export default function AdminDashboard() {
                     </Card>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleAddEvent}>Save Event</Button>
+                    <Button onClick={handleAddEvent} disabled={isLoading}>
+                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Event
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -812,7 +856,10 @@ export default function AdminDashboard() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdateMember}>Save changes</Button>
+            <Button onClick={handleUpdateMember} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -868,7 +915,10 @@ export default function AdminDashboard() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdatePendingMember}>Save changes</Button>
+            <Button onClick={handleUpdatePendingMember} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -923,7 +973,10 @@ export default function AdminDashboard() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdateEvent}>Save changes</Button>
+            <Button onClick={handleUpdateEvent} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
