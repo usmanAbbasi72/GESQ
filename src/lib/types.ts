@@ -13,7 +13,6 @@ export interface Event {
   name: string;
   organizedBy: string;
   date: string;
-  purpose: string;
   certificateUrl?: string;
   certificateBackgroundColor?: string;
   certificateTextColor?: string;

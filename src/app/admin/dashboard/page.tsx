@@ -303,7 +303,6 @@ export default function AdminDashboard() {
     }
     const finalNewEventData = {
       ...newEventData,
-      purpose: '', // Default purpose
     };
     setIsLoading(true);
     try {
