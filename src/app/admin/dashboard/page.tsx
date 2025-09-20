@@ -754,17 +754,19 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {events.map((event) => (
+                  {events.map((event, index) => (
                     <TableRow key={event.id}>
                       <TableCell className="font-medium truncate">{event.name}</TableCell>
-                      <TableCell className="truncate">
-                        {event.certificateUrl ? (
-                          <a href={event.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
-                            {event.certificateUrl}
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">Default Template</span>
-                        )}
+                      <TableCell>
+                        <div className="w-full max-w-[200px] truncate">
+                          {event.certificateUrl ? (
+                            <a href={event.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
+                              BG-{index + 1}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">Default Template</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => setPreviewEvent(event)} disabled={isProcessing}>
