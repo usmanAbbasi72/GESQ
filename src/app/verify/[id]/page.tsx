@@ -7,22 +7,66 @@ import { Badge } from '@/components/ui/badge';
 import type { Member, Event } from '@/lib/types';
 import { CertificateDisplay } from '@/components/certificate-display';
 import { headers } from 'next/headers';
+import type { Metadata } from 'next';
 
 async function getMemberData(id: string): Promise<{ member: Member | undefined; event: Event | undefined }> {
   const member = await getMemberById(id);
-  if (!member) {
-    return { member: undefined, event: undefined };
+  if (!member || !member.event) {
+    return { member, event: undefined };
   }
   const event = await getEventByName(member.event);
   return { member, event };
 }
+
+type Props = {
+  params: { id: string }
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = params.id;
+  const { member, event } = await getMemberData(id);
+
+  if (!member || !event) {
+    return {
+      title: 'Verification Failed',
+      description: `No record found for ID: ${id}`,
+    };
+  }
+
+  const title = `Verified: ${member.userName} - ${event.name}`;
+  const description = `${member.userName} is verified as a ${member.role} for the "${event.name}" event organized by ${event.organizedBy}.`;
+  
+  return {
+    title,
+    description,
+    openGraph: {
+      title: title,
+      description: description,
+      images: [
+        {
+          url: event.certificateUrl || 'https://picsum.photos/seed/env-cert/1200/800',
+          width: 1200,
+          height: 800,
+          alt: `Certificate for ${member.userName}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: title,
+      description: description,
+      images: [event.certificateUrl || 'https://picsum.photos/seed/env-cert/1200/800'],
+    },
+  };
+}
+
 
 export default async function VerifyPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const { member, event } = await getMemberData(id);
 
   const headersList = headers();
-  const host = headersList.get('host') || '';
+  const host = headersList.get('host') || 'localhost:3000';
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
   const verificationUrl = `${protocol}://${host}/verify/${id}`;
 

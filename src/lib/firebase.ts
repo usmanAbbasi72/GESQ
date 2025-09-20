@@ -1,10 +1,10 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps, getApp, FirebaseOptions, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 import { getAuth, Auth } from "firebase/auth";
 
 // Your web app's Firebase configuration using environment variables
-const firebaseConfig: FirebaseOptions = {
+export const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
@@ -16,7 +16,7 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Function to check if the firebase config is valid
-function isFirebaseConfigValid(config: FirebaseOptions): boolean {
+export function isFirebaseConfigValid(config: FirebaseOptions): boolean {
   return !!(
     config.apiKey &&
     config.authDomain &&
@@ -29,17 +29,21 @@ function isFirebaseConfigValid(config: FirebaseOptions): boolean {
 }
 
 // Initialize Firebase
-let app;
+let app: FirebaseApp | undefined;
 let db: Database | undefined;
 let auth: Auth | undefined;
 
-if (typeof window !== 'undefined' && isFirebaseConfigValid(firebaseConfig)) {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const configIsValid = isFirebaseConfigValid(firebaseConfig);
+
+if (configIsValid) {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   db = getDatabase(app);
   auth = getAuth(app);
-} else if (!isFirebaseConfigValid(firebaseConfig)) {
+} else {
+  // In a client-side context, this will appear in the browser console.
+  // In a server-side context (like `seed.ts`), this will appear in the terminal.
   console.error("Firebase config is invalid. Make sure all required NEXT_PUBLIC_ environment variables are set.");
 }
 
 
-export { app, db, auth, firebaseConfig, isFirebaseConfigValid };
+export { app, db, auth };
