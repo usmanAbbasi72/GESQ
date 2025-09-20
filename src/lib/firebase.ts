@@ -24,7 +24,7 @@ function isFirebaseConfigValid(config: FirebaseOptions): boolean {
     config.projectId &&
     config.storageBucket &&
     config.messagingSenderId &&
-    config.appId &&
+    config.appId
   );
 }
 
