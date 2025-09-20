@@ -25,7 +25,7 @@ export async function getMembers(): Promise<Member[]> {
     return snapshotToObjectArray(snapshot);
 }
 
-export async function getPendingMembers(): Promise<(Omit<Member, 'approved' | 'id' | 'event'> & { id: string })[]> {
+export async function getPendingMembers(): Promise<(Omit<Member, 'approved'> & { id: string })[]> {
     const dbRef = ref(db);
     const snapshot = await get(child(dbRef, 'pendingMembers'));
     return snapshotToObjectArray(snapshot);

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -117,7 +118,7 @@ export default function AdminDashboard() {
   const handleApprove = async (pendingMember: PendingMember) => {
     setIsProcessing(true);
     try {
-      const newMemberId = `GES${String(members.length + pendingMembers.length + 101).padStart(3, '0')}`;
+      const newMemberRef = push(ref(db, 'members'));
       const newMember: Omit<Member, 'id'> = {
         userName: pendingMember.userName,
         fatherName: pendingMember.fatherName,
@@ -128,13 +129,12 @@ export default function AdminDashboard() {
         event: pendingMember.event || '',
       };
       
-      const memberRef = ref(db, `members/${newMemberId}`);
-      await set(memberRef, newMember);
+      await set(newMemberRef, newMember);
       
       const pendingMemberRef = ref(db, `pendingMembers/${pendingMember.id}`);
       await remove(pendingMemberRef);
 
-      setMembers(prev => [...prev, { ...newMember, id: newMemberId }]);
+      setMembers(prev => [...prev, { ...newMember, id: newMemberRef.key! }]);
       setPendingMembers(prev => prev.filter(m => m.id !== pendingMember.id));
 
       toast({ title: 'Member Approved', description: `${pendingMember.userName} has been approved.` });
@@ -175,14 +175,14 @@ export default function AdminDashboard() {
     try {
       if (action === 'approve') {
         const approvalPromises = selected.map(async (member) => {
-          const newMemberId = `GES${String(members.length + pendingMembers.length + 101 + Math.random()).padStart(3, '0')}`;
+          const newMemberRef = push(ref(db, 'members'));
           const newMember: Omit<Member, 'id'> = {
             userName: member.userName, fatherName: member.fatherName, cnic: member.cnic,
             email: member.email, role: member.role, approved: true, event: member.event || '',
           };
-          await set(ref(db, `members/${newMemberId}`), newMember);
+          await set(newMemberRef, newMember);
           await remove(ref(db, `pendingMembers/${member.id}`));
-          return { ...newMember, id: newMemberId };
+          return { ...newMember, id: newMemberRef.key! };
         });
         const newApprovedMembers = await Promise.all(approvalPromises);
 
