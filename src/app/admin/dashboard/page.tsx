@@ -580,26 +580,26 @@ export default function AdminDashboard() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setView('members')} isActive={view === 'members'}>
+              <SidebarMenuButton onClick={() => setView('members')} isActive={view === 'members'} className="text-white md:text-inherit">
                 <Users/>
                 Approved Members
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setView('pending')} isActive={view === 'pending'}>
+              <SidebarMenuButton onClick={() => setView('pending')} isActive={view === 'pending'} className="text-white md:text-inherit">
                 <CheckSquare />
                 Pending Members
                 {pendingMembers.length > 0 && <Badge className="ml-auto">{pendingMembers.length}</Badge>}
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setView('events')} isActive={view === 'events'}>
+              <SidebarMenuButton onClick={() => setView('events')} isActive={view === 'events'} className="text-white md:text-inherit">
                 <Calendar />
                 Events
               </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setView('certificates')} isActive={view === 'certificates'}>
+              <SidebarMenuButton onClick={() => setView('certificates')} isActive={view === 'certificates'} className="text-white md:text-inherit">
                 <Award />
                 Certificates
               </SidebarMenuButton>
@@ -609,7 +609,7 @@ export default function AdminDashboard() {
         <SidebarFooter>
            <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setView('settings')} isActive={view === 'settings'}>
+                <SidebarMenuButton onClick={() => setView('settings')} isActive={view === 'settings'} className="text-white md:text-inherit">
                     <Settings />
                     Settings
                 </SidebarMenuButton>
