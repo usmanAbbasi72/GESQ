@@ -30,6 +30,7 @@ const sampleMember: Member = {
   userName: 'John Doe',
   fatherName: 'Richard Doe',
   cnic: '00000-0000000-0',
+  email: 'john.doe@example.com',
   role: 'Participant',
   approved: true,
   event: '',
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
   const [newMemberName, setNewMemberName] = React.useState('');
   const [newMemberFatherName, setNewMemberFatherName] = React.useState('');
   const [newMemberCnic, setNewMemberCnic] = React.useState('');
+  const [newMemberEmail, setNewMemberEmail] = React.useState('');
   const [newMemberRole, setNewMemberRole] = React.useState<'Participant' | 'Volunteer' | 'Organizer' | 'Supervisor'>('Participant');
   const [newMemberEvent, setNewMemberEvent] = React.useState('');
   
@@ -120,6 +122,7 @@ export default function AdminDashboard() {
         userName: pendingMember.userName,
         fatherName: pendingMember.fatherName,
         cnic: pendingMember.cnic,
+        email: pendingMember.email,
         role: pendingMember.role,
         approved: true,
         event: pendingMember.event || '',
@@ -175,7 +178,7 @@ export default function AdminDashboard() {
           const newMemberId = `GES${String(members.length + pendingMembers.length + 101 + Math.random()).padStart(3, '0')}`;
           const newMember: Omit<Member, 'id'> = {
             userName: member.userName, fatherName: member.fatherName, cnic: member.cnic,
-            role: member.role, approved: true, event: member.event || '',
+            email: member.email, role: member.role, approved: true, event: member.event || '',
           };
           await set(ref(db, `members/${newMemberId}`), newMember);
           await remove(ref(db, `pendingMembers/${member.id}`));
@@ -231,8 +234,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAddMember = async () => {
-    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberRole || !newMemberEvent) {
+  const handleAddMember = async () => => {
+    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberEmail || !newMemberRole || !newMemberEvent) {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
     }
@@ -241,6 +244,7 @@ export default function AdminDashboard() {
       userName: newMemberName,
       fatherName: newMemberFatherName,
       cnic: newMemberCnic,
+      email: newMemberEmail,
       role: newMemberRole,
       event: newMemberEvent,
     };
@@ -260,6 +264,7 @@ export default function AdminDashboard() {
         setNewMemberName('');
         setNewMemberFatherName('');
         setNewMemberCnic('');
+        setNewMemberEmail('');
         setNewMemberRole('Participant');
         setNewMemberEvent('');
     } catch (e) {
@@ -491,7 +496,7 @@ export default function AdminDashboard() {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead className="hidden lg:table-cell">Father's Name</TableHead>
+                    <TableHead className="hidden lg:table-cell">Email</TableHead>
                     <TableHead className="hidden lg:table-cell">CNIC</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Event</TableHead>
@@ -503,7 +508,7 @@ export default function AdminDashboard() {
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.id}</TableCell>
                       <TableCell>{member.userName}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{member.fatherName}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{member.email}</TableCell>
                       <TableCell className="hidden lg:table-cell">{member.cnic}</TableCell>
                       <TableCell><Badge variant="outline">{member.role}</Badge></TableCell>
                       <TableCell>{member.event || 'N/A'}</TableCell>
@@ -540,7 +545,7 @@ export default function AdminDashboard() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
-                      <div className="text-sm text-muted-foreground">{member.id} &middot; {member.fatherName}</div>
+                      <div className="text-sm text-muted-foreground">{member.id} &middot; {member.email}</div>
                       <div className="text-sm text-muted-foreground">{member.cnic}</div>
                       <div className="flex items-center justify-between mt-2">
                         <Badge variant="outline">{member.role}</Badge>
@@ -592,7 +597,7 @@ export default function AdminDashboard() {
                       />
                     </TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead className="hidden lg:table-cell">Father's Name</TableHead>
+                    <TableHead className="hidden lg:table-cell">Email</TableHead>
                     <TableHead className="hidden lg:table-cell">CNIC</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Event</TableHead>
@@ -611,7 +616,7 @@ export default function AdminDashboard() {
                         />
                       </TableCell>
                       <TableCell>{member.userName}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{member.fatherName}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{member.email}</TableCell>
                       <TableCell className="hidden lg:table-cell">{member.cnic}</TableCell>
                       <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                       <TableCell>{member.event || 'N/A'}</TableCell>
@@ -658,7 +663,7 @@ export default function AdminDashboard() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                       </div>
-                      <div className="text-sm text-muted-foreground ml-10">{member.fatherName}</div>
+                      <div className="text-sm text-muted-foreground ml-10">{member.email}</div>
                       <div className="text-sm text-muted-foreground ml-10">{member.cnic}</div>
                       <div className="flex items-center justify-between mt-2 ml-10">
                         <Badge variant="secondary">{member.role}</Badge>
@@ -890,6 +895,10 @@ export default function AdminDashboard() {
                       <Label htmlFor="cnic" className="text-right">CNIC</Label>
                       <Input id="cnic" value={newMemberCnic} onChange={(e) => setNewMemberCnic(e.target.value)} className="col-span-3" />
                     </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="email" className="text-right">Email</Label>
+                      <Input id="email" type="email" value={newMemberEmail} onChange={(e) => setNewMemberEmail(e.target.value)} className="col-span-3" />
+                    </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="role" className="text-right">Role</Label>
                        <Select onValueChange={(value) => setNewMemberRole(value as any)} value={newMemberRole}>
@@ -1017,6 +1026,10 @@ export default function AdminDashboard() {
                 <Input id="cnic" value={editingMember.cnic} onChange={e => setEditingMember({...editingMember, cnic: e.target.value})} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">Email</Label>
+                <Input id="email" type="email" value={editingMember.email} onChange={e => setEditingMember({...editingMember, email: e.target.value})} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="event" className="text-right">Event</Label>
                  <Select onValueChange={(value) => setEditingMember(prev => prev ? {...prev, event: value === 'none' ? '' : value} : null)} value={editingMember.event || 'none'}>
                   <SelectTrigger className="col-span-3">
@@ -1074,6 +1087,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="cnic" className="text-right">CNIC</Label>
                 <Input id="cnic" value={editingPendingMember.cnic} onChange={e => setEditingPendingMember(prev => prev ? {...prev, cnic: e.target.value} : null)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">Email</Label>
+                <Input id="email" type="email" value={editingPendingMember.email} onChange={e => setEditingPendingMember(prev => prev ? {...prev, email: e.target.value} : null)} className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">Role</Label>

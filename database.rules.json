@@ -5,14 +5,14 @@
       ".read": "auth != null",
       ".write": "auth != null",
       "$uid": {
-        ".validate": "newData.hasChildren(['userName', 'fatherName', 'cnic', 'role', 'approved']) && newData.child('userName').isString() && newData.child('fatherName').isString() && newData.child('cnic').isString() && newData.child('role').isString() && newData.child('approved').isBoolean()"
+        ".validate": "newData.hasChildren(['userName', 'fatherName', 'cnic', 'email', 'role', 'approved']) && newData.child('userName').isString() && newData.child('fatherName').isString() && newData.child('cnic').isString() && newData.child('email').isString() && newData.child('role').isString() && newData.child('approved').isBoolean()"
       }
     },
     "pendingMembers": {
       ".read": "auth != null",
       ".write": true, 
       "$uid": {
-        ".validate": "newData.hasChildren(['userName', 'fatherName', 'cnic', 'role']) && newData.child('userName').isString() && newData.child('fatherName').isString() && newData.child('cnic').isString() && newData.child('role').isString()"
+        ".validate": "newData.hasChildren(['userName', 'fatherName', 'cnic', 'email', 'role']) && newData.child('userName').isString() && newData.child('fatherName').isString() && newData.child('cnic').isString() && newData.child('email').isString() && newData.child('role').isString()"
       }
     },
     "events": {

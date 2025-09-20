@@ -1,8 +1,9 @@
+
 import { getMemberById, getEventByName } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CheckCircle2, XCircle, Home, User, Calendar } from 'lucide-react';
+import { CheckCircle2, XCircle, Home, User, Calendar, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Member, Event } from '@/lib/types';
 import { CertificateDisplay } from '@/components/certificate-display';
@@ -124,6 +125,7 @@ export default async function VerifyPage({ params }: { params: { id: string } })
                 {detailItem({ label: 'Name', value: member.userName })}
                 {detailItem({ label: 'Father\'s Name', value: member.fatherName })}
                 {detailItem({ label: 'CNIC', value: member.cnic })}
+                {detailItem({ label: 'Email', value: member.email })}
                 {detailItem({ label: 'Verification ID', value: member.id })}
               </CardContent>
             </Card>

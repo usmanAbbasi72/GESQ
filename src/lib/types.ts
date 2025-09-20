@@ -1,8 +1,10 @@
+
 export interface Member {
   id: string;
   userName: string;
   fatherName: string;
   cnic: string;
+  email: string;
   event: string;
   role: 'Participant' | 'Volunteer' | 'Organizer' | 'Supervisor';
   approved: boolean;
