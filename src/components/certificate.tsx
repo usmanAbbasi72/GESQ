@@ -137,6 +137,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
               <span className="font-sans font-bold text-lg">{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
             <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Event Date</p>
+            <p className="w-full truncate px-1">&nbsp;</p>
           </div>
         </div>
       </div>
