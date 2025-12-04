@@ -31,10 +31,9 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   }, []);
 
   useEffect(() => {
-    if (totalAssets > 0 && loadedAssetCount >= totalAssets) {
+    if (totalAssets === 0) {
       onAssetsLoaded();
-    } else if (totalAssets === 0) {
-      // If there are no external assets, it's loaded by default
+    } else if (loadedAssetCount >= totalAssets) {
       onAssetsLoaded();
     }
   }, [loadedAssetCount, totalAssets, onAssetsLoaded]);
@@ -118,12 +117,12 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
         {/* Footer Section */}
         <div className="w-full flex justify-between items-end text-[6px] sm:text-xs md:text-sm pt-2 sm:pt-4 gap-4">
           <div className='flex-1 flex flex-col items-center w-full'>
-            <div className="h-4 sm:h-8 md:h-12 flex items-center justify-center">
+             <div className="h-4 sm:h-8 md:h-12 flex items-center justify-center">
                 {assets.sign ? (
                 <img 
                     src={assets.sign} 
                     alt="Organizer Signature" 
-                    className="h-auto max-h-full w-auto object-contain" 
+                    className="h-auto max-h-10 w-auto object-contain" 
                     crossOrigin='anonymous' 
                     onLoad={handleAssetLoad} 
                     onError={handleAssetLoad}
@@ -141,7 +140,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
             <div className="border-t pt-1 w-full" style={{ borderColor: borderColor }}>
                  <p className="font-bold">Event Date</p>
             </div>
-            <p className="w-full truncate px-1">&nbsp;</p>
+            <div className="w-full truncate px-1">&nbsp;</div>
           </div>
         </div>
       </div>
