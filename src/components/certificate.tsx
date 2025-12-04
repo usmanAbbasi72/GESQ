@@ -33,13 +33,16 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   useEffect(() => {
     if (totalAssets > 0 && loadedAssetCount >= totalAssets) {
       onAssetsLoaded();
+    } else if (totalAssets === 0) {
+      // If there are no external assets, it's loaded by default
+      onAssetsLoaded();
     }
   }, [loadedAssetCount, totalAssets, onAssetsLoaded]);
 
 
   const textColor = event.certificateTextColor || 'hsl(var(--foreground))';
   const primaryColor = event.certificateTextColor || 'hsl(var(--primary))';
-  const accentColor = event.certificateTextColor || 'hsl(var(--accent-foreground))';
+  const accentColor = event.certificateTextColor ? 'hsla(0, 0%, 100%, 0.85)' : 'hsl(var(--accent-foreground))';
   const accentBgColor = event.certificateTextColor ? 'hsla(0, 0%, 100%, 0.15)' : 'hsl(var(--accent))';
   const borderColor = event.certificateTextColor || 'hsl(var(--foreground))';
 
@@ -55,7 +58,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
           alt={event.name || "Certificate background"}
           crossOrigin="anonymous" 
           onLoad={handleAssetLoad}
-          onError={handleAssetLoad}
+          onError={handleAssetLoad} // Count as loaded even on error to not block forever
           className="absolute inset-0 w-full h-full object-cover"
           data-ai-hint="certificate background"
         />
