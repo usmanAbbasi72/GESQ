@@ -1,6 +1,6 @@
 
 import type { Member, Event } from './types';
-import { firestore } from './firebase'; // Use firestore instance
+import { initializeFirebase } from './firebase'; 
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 
 // Helper function to convert snapshot to array
@@ -12,6 +12,7 @@ const snapshotToArray = (snapshot: any) => {
 };
 
 export async function getMembers(): Promise<Member[]> {
+    const { firestore } = initializeFirebase();
     if (!firestore) return [];
     const membersCol = collection(firestore, 'members');
     const memberSnapshot = await getDocs(membersCol);
@@ -19,6 +20,7 @@ export async function getMembers(): Promise<Member[]> {
 }
 
 export async function getPendingMembers(): Promise<(Omit<Member, 'approved'> & { id: string })[]> {
+    const { firestore } = initializeFirebase();
     if (!firestore) return [];
     const pendingMembersCol = collection(firestore, 'pendingMembers');
     const pendingMemberSnapshot = await getDocs(pendingMembersCol);
@@ -26,6 +28,7 @@ export async function getPendingMembers(): Promise<(Omit<Member, 'approved'> & {
 }
 
 export async function getEvents(): Promise<Event[]> {
+    const { firestore } = initializeFirebase();
     if (!firestore) return [];
     const eventsCol = collection(firestore, 'events');
     const eventSnapshot = await getDocs(eventsCol);
@@ -33,6 +36,7 @@ export async function getEvents(): Promise<Event[]> {
 }
 
 export async function getMemberById(id: string): Promise<Member | undefined> {
+    const { firestore } = initializeFirebase();
     if (!firestore) return undefined;
     const memberDoc = doc(firestore, 'members', id);
     const memberSnapshot = await getDoc(memberDoc);
@@ -43,6 +47,7 @@ export async function getMemberById(id: string): Promise<Member | undefined> {
 }
 
 export async function getEventByName(name: string): Promise<Event | undefined> {
+    const { firestore } = initializeFirebase();
     if (!name || !firestore) return undefined;
     const eventsCol = collection(firestore, 'events');
     const q = query(eventsCol, where("name", "==", name));

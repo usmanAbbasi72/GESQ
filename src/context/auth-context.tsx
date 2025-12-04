@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { app } from '@/lib/firebase'; // We still need `app` for the logout function scope
+import { getAuth, onAuthStateChanged, User, signOut, Auth } from 'firebase/auth';
+import { initializeFirebase } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -17,19 +17,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [auth, setAuth] = useState<Auth | undefined>(undefined);
 
   useEffect(() => {
-    // getAuth() must be called after Firebase app is initialized.
-    // By calling it inside useEffect, we ensure this runs on the client after mounting.
-    if (app) {
-      const auth = getAuth(app);
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const { auth: firebaseAuth } = initializeFirebase();
+    setAuth(firebaseAuth);
+
+    if (firebaseAuth) {
+      const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
         setUser(user);
         setLoading(false);
       });
       return () => unsubscribe();
     } else {
-      // If app is not initialized (e.g. missing config), stop loading and show unauthenticated state.
+      // If auth is not initialized, stop loading and show unauthenticated state.
       setLoading(false);
     }
   }, []);
@@ -39,8 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    if (app) {
-      const auth = getAuth(app);
+    if (auth) {
       await signOut(auth);
     }
     setUser(null);

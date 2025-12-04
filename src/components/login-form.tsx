@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { getApp } from "firebase/app";
+import { initializeFirebase } from "@/lib/firebase";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -43,8 +43,15 @@ export function LoginForm() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const app = getApp(); // Get initialized app instance
-    const auth = getAuth(app);
+    const { auth } = initializeFirebase();
+    if (!auth) {
+      toast({
+        title: "Login Failed",
+        description: "Firebase is not configured correctly. Please check the console.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       login(auth.currentUser); // Pass user to context

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { getMembers as fetchMembers, getEvents as fetchEvents, getPendingMembers as fetchPendingMembers } from '@/lib/data';
-import { firestore } from '@/lib/firebase';
+import { initializeFirebase } from '@/lib/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import Certificate from '@/components/certificate';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getAuth } from 'firebase/auth';
-import { app } from '@/lib/firebase';
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
 
@@ -45,6 +43,7 @@ export default function AdminDashboard() {
   const [members, setMembers] = React.useState<Member[]>([]);
   const [pendingMembers, setPendingMembers] = React.useState<PendingMember[]>([]);
   const [events, setEvents] = React.useState<Event[]>([]);
+  const { firestore } = initializeFirebase();
   const [dbStatus, setDbStatus] = React.useState(!!firestore);
   const [view, setView] = React.useState<DashboardView>('overview');
   const [isLoading, setIsLoading] = React.useState(true);
@@ -77,7 +76,7 @@ export default function AdminDashboard() {
       }
     };
     loadData();
-  }, [toast]);
+  }, [toast, firestore]);
 
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
   const [newMemberName, setNewMemberName] = React.useState('');

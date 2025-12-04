@@ -1,6 +1,6 @@
 
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps, getApp, FirebaseApp, FirebaseOptions } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
@@ -28,17 +28,28 @@ function isFirebaseConfigValid(config: FirebaseOptions): boolean {
   );
 }
 
-// Initialize Firebase
-let app;
-let firestore: Firestore | undefined;
+// Singleton instances
+let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
+let firestore: Firestore | undefined;
 
-if (isFirebaseConfigValid(firebaseConfig)) {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  firestore = getFirestore(app);
-  auth = getAuth(app);
-} else {
-  console.error("Firebase config is invalid. Make sure all required environment variables are set.");
+function initializeFirebase() {
+  if (typeof window !== 'undefined') {
+    if (!app) {
+      if (isFirebaseConfigValid(firebaseConfig)) {
+        try {
+          app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+          auth = getAuth(app);
+          firestore = getFirestore(app);
+        } catch (e) {
+          console.error("Failed to initialize Firebase", e);
+        }
+      } else {
+        console.error("Firebase config is invalid. Make sure all required environment variables are set.");
+      }
+    }
+  }
+  return { app, auth, firestore };
 }
 
-export { app, firestore, auth };
+export { initializeFirebase };
