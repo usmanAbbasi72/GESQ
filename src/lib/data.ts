@@ -49,7 +49,7 @@ export async function getMemberById(id: string): Promise<Member | undefined> {
     if (!firestore) return undefined;
     const memberDoc = doc(firestore, 'members', id);
     const memberSnapshot = await getDoc(memberDoc);
-    if (memberSnapshot.exists() && memberSnapshot.data().approved) {
+    if (memberSnapshot.exists()) {
         return { ...memberSnapshot.data(), id: memberSnapshot.id } as Member;
     }
     return undefined;
