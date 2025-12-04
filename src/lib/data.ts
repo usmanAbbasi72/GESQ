@@ -11,21 +11,30 @@ const snapshotToArray = (snapshot: any) => {
     return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 };
 
-export async function getMembers(): Promise<Member[]> {
+export async function getMembers(approved?: boolean): Promise<Member[]> {
     const { firestore } = initializeFirebase();
     if (!firestore) return [];
+    
     const membersCol = collection(firestore, 'members');
-    const memberSnapshot = await getDocs(membersCol);
-    return snapshotToArray(memberSnapshot);
+    let q = query(membersCol);
+
+    if (approved !== undefined) {
+        q = query(membersCol, where("approved", "==", approved));
+    }
+    
+    const memberSnapshot = await getDocs(q);
+    const members = snapshotToArray(memberSnapshot);
+
+    // Sort members to ensure consistent ordering for ID generation
+    members.sort((a: Member, b: Member) => {
+        const aNum = parseInt(a.id.split('-')[1] || '0', 10);
+        const bNum = parseInt(b.id.split('-')[1] || '0', 10);
+        return aNum - bNum;
+    });
+
+    return members;
 }
 
-export async function getPendingMembers(): Promise<(Omit<Member, 'approved'> & { id: string })[]> {
-    const { firestore } = initializeFirebase();
-    if (!firestore) return [];
-    const pendingMembersCol = collection(firestore, 'pendingMembers');
-    const pendingMemberSnapshot = await getDocs(pendingMembersCol);
-    return snapshotToArray(pendingMemberSnapshot);
-}
 
 export async function getEvents(): Promise<Event[]> {
     const { firestore } = initializeFirebase();
@@ -40,7 +49,7 @@ export async function getMemberById(id: string): Promise<Member | undefined> {
     if (!firestore) return undefined;
     const memberDoc = doc(firestore, 'members', id);
     const memberSnapshot = await getDoc(memberDoc);
-    if (memberSnapshot.exists()) {
+    if (memberSnapshot.exists() && memberSnapshot.data().approved) {
         return { ...memberSnapshot.data(), id: memberSnapshot.id } as Member;
     }
     return undefined;

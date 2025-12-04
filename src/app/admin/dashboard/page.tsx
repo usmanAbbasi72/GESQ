@@ -2,9 +2,9 @@
 'use client';
 
 import * as React from 'react';
-import { getMembers as fetchMembers, getEvents as fetchEvents, getPendingMembers as fetchPendingMembers } from '@/lib/data';
+import { getMembers as fetchMembers, getEvents as fetchEvents } from '@/lib/data';
 import { initializeFirebase } from '@/lib/firebase';
-import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,8 +21,6 @@ import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButt
 import Certificate from '@/components/certificate';
 import { Checkbox } from '@/components/ui/checkbox';
 
-type PendingMember = Omit<Member, 'approved'> & { id: string };
-
 type DashboardView = 'overview' | 'members' | 'pending' | 'events' | 'certificates' | 'settings';
 
 const sampleMember: Member = {
@@ -37,11 +35,11 @@ const sampleMember: Member = {
 };
 
 const ITEMS_PER_PAGE = 10;
+const ID_PREFIX = "GES";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [members, setMembers] = React.useState<Member[]>([]);
-  const [pendingMembers, setPendingMembers] = React.useState<PendingMember[]>([]);
   const [events, setEvents] = React.useState<Event[]>([]);
   const { firestore } = initializeFirebase();
   const [dbStatus, setDbStatus] = React.useState(!!firestore);
@@ -55,18 +53,19 @@ export default function AdminDashboard() {
 
   const [previewEvent, setPreviewEvent] = React.useState<Event | null>(null);
 
+  const approvedMembers = React.useMemo(() => members.filter(m => m.approved), [members]);
+  const pendingMembers = React.useMemo(() => members.filter(m => !m.approved), [members]);
+
   React.useEffect(() => {
     if (!firestore) return;
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [membersData, pendingData, eventsData] = await Promise.all([
+        const [membersData, eventsData] = await Promise.all([
           fetchMembers(),
-          fetchPendingMembers(),
           fetchEvents(),
         ]);
         setMembers(membersData);
-        setPendingMembers(pendingData);
         setEvents(eventsData);
       } catch (error) {
         console.error("Error loading data: ", error);
@@ -89,9 +88,6 @@ export default function AdminDashboard() {
   const [editingMember, setEditingMember] = React.useState<Member | null>(null);
   const [isEditMemberOpen, setIsEditMemberOpen] = React.useState(false);
 
-  const [editingPendingMember, setEditingPendingMember] = React.useState<PendingMember | null>(null);
-  const [isEditPendingMemberOpen, setIsEditPendingMemberOpen] = React.useState(false);
-
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const [isEditEventOpen, setIsEditEventOpen] = React.useState(false);
   
@@ -106,31 +102,18 @@ export default function AdminDashboard() {
     organizerSignUrl: '',
     qrCodeUrl: '',
   });
-
-  const handleApprove = async (pendingMember: PendingMember) => {
+  
+  const handleApprove = async (memberToApprove: Member) => {
     if (!firestore) return;
     setIsProcessing(true);
     try {
-      const newMember: Omit<Member, 'id'> = {
-        userName: pendingMember.userName,
-        fatherName: pendingMember.fatherName,
-        cnic: pendingMember.cnic,
-        email: pendingMember.email,
-        role: pendingMember.role,
-        approved: true,
-        event: pendingMember.event || '',
-      };
-      
-      const newMemberRef = await addDoc(collection(firestore, 'members'), newMember);
-      
-      const pendingMemberRef = doc(firestore, `pendingMembers/${pendingMember.id}`);
-      await deleteDoc(pendingMemberRef);
+      const memberRef = doc(firestore, `members/${memberToApprove.id}`);
+      await updateDoc(memberRef, { approved: true });
 
-      setMembers(prev => [...prev, { ...newMember, id: newMemberRef.id }]);
-      setPendingMembers(prev => prev.filter(m => m.id !== pendingMember.id));
+      setMembers(prev => prev.map(m => m.id === memberToApprove.id ? { ...m, approved: true } : m));
 
-      toast({ title: 'Member Approved', description: `${pendingMember.userName} has been approved.` });
-    } catch(e) {
+      toast({ title: 'Member Approved', description: `${memberToApprove.userName} has been approved.` });
+    } catch (e) {
       console.error("Error approving member:", e);
       toast({ title: 'Error', description: 'Failed to approve member.', variant: 'destructive' });
     } finally {
@@ -138,28 +121,28 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleReject = async (pendingMemberId: string) => {
+  const handleReject = async (memberId: string) => {
     if (!firestore) return;
     setIsProcessing(true);
-    const memberToReject = pendingMembers.find(m => m.id === pendingMemberId);
+    const memberToReject = members.find(m => m.id === memberId);
     try {
-      const pendingMemberRef = doc(firestore, `pendingMembers/${pendingMemberId}`);
-      await deleteDoc(pendingMemberRef);
+      const memberRef = doc(firestore, `members/${memberId}`);
+      await deleteDoc(memberRef);
 
-      setPendingMembers(prev => prev.filter(m => m.id !== pendingMemberId));
-      toast({ title: 'Member Rejected', description: `${memberToReject?.userName || 'Member'} has been rejected.`, variant: 'destructive' });
+      setMembers(prev => prev.filter(m => m.id !== memberId));
+      toast({ title: 'Member Rejected', description: `${memberToReject?.userName || 'Member'} has been rejected and removed.`, variant: 'destructive' });
     } catch (e) {
       console.error("Error rejecting member:", e);
       toast({ title: 'Error', description: 'Failed to reject member.', variant: 'destructive' });
     } finally {
-        setIsProcessing(false);
+      setIsProcessing(false);
     }
   };
   
   const handleBulkActions = async (action: 'approve' | 'reject') => {
     if (!firestore) return;
     setIsProcessing(true);
-    const selected = pendingMembers.filter(m => selectedPending.includes(m.id));
+    const selected = members.filter(m => selectedPending.includes(m.id));
     if (selected.length === 0) {
       toast({ title: 'No members selected', description: 'Please select members to perform this action.', variant: 'destructive' });
       setIsProcessing(false);
@@ -168,27 +151,18 @@ export default function AdminDashboard() {
     
     try {
       if (action === 'approve') {
-        const approvalPromises = selected.map(async (member) => {
-          const newMember: Omit<Member, 'id'> = {
-            userName: member.userName, fatherName: member.fatherName, cnic: member.cnic,
-            email: member.email, role: member.role, approved: true, event: member.event || '',
-          };
-          const newMemberRef = await addDoc(collection(firestore, 'members'), newMember);
-          await deleteDoc(doc(firestore, `pendingMembers/${member.id}`));
-          return { ...newMember, id: newMemberRef.id };
-        });
-        const newApprovedMembers = await Promise.all(approvalPromises);
+        const approvalPromises = selected.map(member => updateDoc(doc(firestore, `members/${member.id}`), { approved: true }));
+        await Promise.all(approvalPromises);
 
-        setMembers(prev => [...prev, ...newApprovedMembers]);
-        setPendingMembers(prev => prev.filter(m => !selectedPending.includes(m.id)));
+        setMembers(prev => prev.map(m => selectedPending.includes(m.id) ? { ...m, approved: true } : m));
         toast({ title: 'Bulk Approve Successful', description: `${selected.length} members have been approved.` });
 
       } else if (action === 'reject') {
-        const rejectionPromises = selected.map(member => deleteDoc(doc(firestore, `pendingMembers/${member.id}`)));
+        const rejectionPromises = selected.map(member => deleteDoc(doc(firestore, `members/${member.id}`)));
         await Promise.all(rejectionPromises);
 
-        setPendingMembers(prev => prev.filter(m => !selectedPending.includes(m.id)));
-        toast({ title: 'Bulk Reject Successful', description: `${selected.length} members have been rejected.`, variant: 'destructive' });
+        setMembers(prev => prev.filter(m => !selectedPending.includes(m.id)));
+        toast({ title: 'Bulk Reject Successful', description: `${selected.length} members have been rejected and removed.`, variant: 'destructive' });
       }
       setSelectedPending([]);
     } catch (e) {
@@ -231,27 +205,31 @@ export default function AdminDashboard() {
 
   const handleAddMember = async () => {
     if (!firestore) return;
-    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberEmail || !newMemberRole || !newMemberEvent) {
-      toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
+    if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberEmail || !newMemberRole) {
+      toast({ title: 'Error', description: 'Please fill out all required fields.', variant: 'destructive' });
       return;
     }
     
-    const newPendingMemberData = {
-      userName: newMemberName,
-      fatherName: newMemberFatherName,
-      cnic: newMemberCnic,
-      email: newMemberEmail,
-      role: newMemberRole,
-      event: newMemberEvent,
-    };
-    
     setIsProcessing(true);
     try {
-        const pendingMembersCol = collection(firestore, 'pendingMembers');
-        const newMemberRef = await addDoc(pendingMembersCol, newPendingMemberData);
+        const nextIdNumber = members.length > 0 ? Math.max(...members.map(m => parseInt(m.id.split('-')[1] || '0'))) + 1 : 1;
+        const newMemberId = `${ID_PREFIX}-${nextIdNumber}`;
 
-        const newMemberWithId = { ...newPendingMemberData, id: newMemberRef.id };
-        setPendingMembers(prev => [...prev, newMemberWithId]);
+        const newMemberData: Omit<Member, 'id'> = {
+          userName: newMemberName,
+          fatherName: newMemberFatherName,
+          cnic: newMemberCnic,
+          email: newMemberEmail,
+          role: newMemberRole,
+          event: newMemberEvent,
+          approved: false, // All new members are initially not approved
+        };
+
+        const newMemberRef = doc(firestore, 'members', newMemberId);
+        await setDoc(newMemberRef, newMemberData);
+
+        const newMemberWithId = { ...newMemberData, id: newMemberId };
+        setMembers(prev => [...prev, newMemberWithId]);
 
         setIsAddMemberOpen(false);
         toast({ title: "Member Added", description: `${newMemberName} is pending approval.`});
@@ -294,35 +272,6 @@ export default function AdminDashboard() {
       setIsProcessing(false);
     }
   };
-
-  const handleOpenEditPendingMember = (member: PendingMember) => {
-    setEditingPendingMember({ ...member });
-    setIsEditPendingMemberOpen(true);
-  };
-
-  const handleUpdatePendingMember = async () => {
-    if (!editingPendingMember || !firestore) return;
-    setIsProcessing(true);
-    try {
-      const { id, ...memberToSave } = editingPendingMember;
-      const pendingMemberRef = doc(firestore, `pendingMembers/${id}`);
-      await setDoc(pendingMemberRef, memberToSave, { merge: true });
-
-      setPendingMembers(prev => prev.map(m => 
-        m.id === editingPendingMember.id 
-        ? editingPendingMember 
-        : m
-      ));
-      setIsEditPendingMemberOpen(false);
-      setEditingPendingMember(null);
-      toast({ title: "Changes Saved", description: `Details for ${editingPendingMember.userName} have been updated.` });
-    } catch(e) {
-       console.error("Error updating pending member:", e);
-       toast({ title: 'Error', description: 'Failed to update member.', variant: 'destructive' });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
   
   const handleOpenEditEvent = (event: Event) => {
     setEditingEvent({ ...event });
@@ -355,16 +304,29 @@ export default function AdminDashboard() {
       toast({ title: 'Error', description: 'Please fill out name, date, and organizer.', variant: 'destructive' });
       return;
     }
-    const finalNewEventData = {
-      ...newEventData,
-    };
     setIsProcessing(true);
     try {
       const eventsCol = collection(firestore, 'events');
-      const newEventRef = await addDoc(eventsCol, finalNewEventData);
+      // Let firestore create event ID
+      const newEventRef = await doc(collection(firestore, 'events'));
 
-      const newEventWithId: Event = { ...finalNewEventData, id: newEventRef.id } as Event;
-      setEvents(prevEvents => [...prevEvents, newEventWithId]); 
+      const finalNewEventData = {
+          ...newEventData,
+          id: newEventRef.id
+      } as Event;
+
+      await setDoc(newEventRef, {
+        name: finalNewEventData.name,
+        date: finalNewEventData.date,
+        organizedBy: finalNewEventData.organizedBy,
+        certificateUrl: finalNewEventData.certificateUrl,
+        certificateBackgroundColor: finalNewEventData.certificateBackgroundColor,
+        certificateTextColor: finalNewEventData.certificateTextColor,
+        organizerSignUrl: finalNewEventData.organizerSignUrl,
+        qrCodeUrl: finalNewEventData.qrCodeUrl,
+      });
+
+      setEvents(prevEvents => [...prevEvents, finalNewEventData]); 
 
       setIsAddEventOpen(false);
       toast({ title: "Event Added", description: `${finalNewEventData.name} has been created.` });
@@ -382,7 +344,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredMembers = members.filter(member =>
+  const filteredApprovedMembers = approvedMembers.filter(member =>
     member.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.cnic.includes(searchQuery)
@@ -448,7 +410,7 @@ export default function AdminDashboard() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{members.length}</div>
+                  <div className="text-2xl font-bold">{approvedMembers.length}</div>
                   <p className="text-xs text-muted-foreground">approved members</p>
                 </CardContent>
               </Card>
@@ -499,7 +461,7 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getPaginatedData(filteredMembers).map((member) => (
+                  {getPaginatedData(filteredApprovedMembers).map((member) => (
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.id}</TableCell>
                       <TableCell>{member.userName}</TableCell>
@@ -523,9 +485,9 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
-              <PaginationControls totalItems={filteredMembers.length} />
+              <PaginationControls totalItems={filteredApprovedMembers.length} />
               <div className="grid gap-4 md:hidden">
-                {getPaginatedData(filteredMembers).map(member => (
+                {getPaginatedData(filteredApprovedMembers).map(member => (
                   <Card key={member.id} className="p-4">
                      <div className="flex items-center justify-between">
                         <div className="font-medium">{member.userName}</div>
@@ -623,7 +585,7 @@ export default function AdminDashboard() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isProcessing}>Approve</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member.id)} disabled={isProcessing}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -653,7 +615,7 @@ export default function AdminDashboard() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => handleApprove(member)} disabled={isProcessing}>Approve</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenEditPendingMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditMember(member)} disabled={isProcessing}>Edit</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleReject(member.id)} disabled={isProcessing}>Reject</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1002,7 +964,7 @@ export default function AdminDashboard() {
       </SidebarInset>
       </div>
 
-      {/* Edit Approved Member Dialog */}
+      {/* Edit Member Dialog */}
       <Dialog open={isEditMemberOpen} onOpenChange={setIsEditMemberOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1065,69 +1027,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Pending Member Dialog */}
-      <Dialog open={isEditPendingMemberOpen} onOpenChange={setIsEditPendingMemberOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Pending Member</DialogTitle>
-          </DialogHeader>
-          {editingPendingMember && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" value={editingPendingMember.userName} onChange={e => setEditingPendingMember(prev => prev ? {...prev, userName: e.target.value} : null)} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                <Input id="fatherName" value={editingPendingMember.fatherName} onChange={e => setEditingPendingMember(prev => prev ? {...prev, fatherName: e.target.value} : null)} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="cnic" className="text-right">CNIC</Label>
-                <Input id="cnic" value={editingPendingMember.cnic} onChange={e => setEditingPendingMember(prev => prev ? {...prev, cnic: e.target.value} : null)} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">Email</Label>
-                <Input id="email" type="email" value={editingPendingMember.email} onChange={e => setEditingPendingMember(prev => prev ? {...prev, email: e.target.value} : null)} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="role" className="text-right">Role</Label>
-                <Select onValueChange={(value) => setEditingPendingMember(prev => prev ? {...prev, role: value as any} : null)} value={editingPendingMember.role}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Participant">Participant</SelectItem>
-                    <SelectItem value="Volunteer">Volunteer</SelectItem>
-                    <SelectItem value="Organizer">Organizer</SelectItem>
-                    <SelectItem value="Supervisor">Supervisor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="event-edit-pending" className="text-right">Event</Label>
-                 <Select onValueChange={(value) => setEditingPendingMember(prev => prev ? {...prev, event: value === 'none' ? '' : value} : null)} value={editingPendingMember.event || 'none'}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select an event" />
-                  </SelectTrigger>
-                  <SelectContent>
-                     <SelectItem value="none">N/A</SelectItem>
-                    {events.map(event => (
-                      <SelectItem key={event.id} value={event.name}>{event.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={handleUpdatePendingMember} disabled={isProcessing}>
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Edit Event Dialog */}
        <Dialog open={isEditEventOpen} onOpenChange={setIsEditEventOpen}>
         <DialogContent className="sm:max-w-[600px]">
