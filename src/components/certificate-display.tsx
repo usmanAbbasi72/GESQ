@@ -18,7 +18,7 @@ interface CertificateDisplayProps {
 
 export function CertificateDisplay({ member, event, verificationUrl }: CertificateDisplayProps) {
   const { toast } = useToast();
-  const certificateRef = useRef<HTMLDivElement>(null);
+  const certificateWrapperRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [areAssetsLoaded, setAreAssetsLoaded] = useState(false);
 
@@ -27,7 +27,10 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
   }, []);
 
   const handleDownload = async () => {
-    if (!certificateRef.current) {
+    // We are targeting the inner Certificate div for rendering, not the scaling wrapper
+    const certificateElement = certificateWrapperRef.current?.querySelector('#certificate-to-print') as HTMLElement | null;
+
+    if (!certificateElement) {
       toast({ title: 'Error', description: 'Certificate element not found.', variant: 'destructive'});
       return;
     }
@@ -43,7 +46,7 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
       // Give browser a moment to render fonts
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(certificateRef.current, {
+      const canvas = await html2canvas(certificateElement, {
         scale: 3, 
         useCORS: true,
         backgroundColor: null,
@@ -75,13 +78,15 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
           <Award className="text-primary"/> Digital Certificate
         </h3>
       </div>
-      <Certificate 
-        ref={certificateRef}
-        member={member} 
-        event={event} 
-        verificationUrl={verificationUrl} 
-        onAssetsLoaded={handleAssetsLoaded}
-      />
+      <div ref={certificateWrapperRef} className="w-full overflow-x-auto py-4">
+        <Certificate 
+          id="certificate-to-print"
+          member={member} 
+          event={event} 
+          verificationUrl={verificationUrl} 
+          onAssetsLoaded={handleAssetsLoaded}
+        />
+      </div>
       <div className="text-center pt-4 flex justify-center">
         <Button onClick={handleDownload} disabled={isDownloading || !areAssetsLoaded}>
           {isDownloading ? (

@@ -3,17 +3,17 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Member, Event } from '@/lib/types';
 import { Leaf } from 'lucide-react';
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { QRCodeDisplay } from './qr-code-display';
 
-interface CertificateProps {
+interface CertificateProps extends React.HTMLAttributes<HTMLDivElement> {
   member: Member;
   event: Event;
   verificationUrl: string;
   onAssetsLoaded: () => void;
 }
 
-const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event, verificationUrl, onAssetsLoaded }, ref) => {
+const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event, verificationUrl, onAssetsLoaded, ...props }, ref) => {
   const fallbackImage = PlaceHolderImages.find((img) => img.id === 'certificate');
   
   const [assets, setAssets] = useState({
@@ -33,7 +33,9 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   useEffect(() => {
     if (totalAssets === 0) {
       onAssetsLoaded();
-    } else if (loadedAssetCount >= totalAssets) {
+      return;
+    } 
+    if (loadedAssetCount >= totalAssets) {
       onAssetsLoaded();
     }
   }, [loadedAssetCount, totalAssets, onAssetsLoaded]);
@@ -46,9 +48,10 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
   const borderColor = event.certificateTextColor || 'hsl(var(--foreground))';
 
   return (
-    <div 
+    <div
+      {...props}
       ref={ref} 
-      className="w-full max-w-3xl mx-auto aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50"
+      className="w-[900px] aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50 mx-auto"
       style={{ backgroundColor: event.certificateBackgroundColor || 'hsl(var(--background))' }}
     >
       {assets.bg && (
