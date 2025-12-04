@@ -1,12 +1,18 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow authenticated users (admins) to read/write all members
     match /members/{memberId} {
-      // Public can read approved members, authenticated users can write.
-      allow read: if resource.data.approved == true;
-      allow write: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
+    
+    // Allow anyone to read approved member data for public verification
+    // This is a more specific rule that overrides the one above for public reads.
+    match /members/{memberId} {
+       allow get: if resource.data.approved == true;
+    }
+
+    // Allow anyone to read event data, but only admins to write
     match /events/{eventId} {
       allow read: if true;
       allow write: if request.auth != null;
