@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getApp } from "firebase/app";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -18,7 +19,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
-import { app } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -43,6 +43,7 @@ export function LoginForm() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    const app = getApp(); // Get initialized app instance
     const auth = getAuth(app);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
