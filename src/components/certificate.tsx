@@ -10,36 +10,16 @@ interface CertificateProps extends React.HTMLAttributes<HTMLDivElement> {
   member: Member;
   event: Event;
   verificationUrl: string;
-  onAssetsLoaded: () => void;
 }
 
-const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event, verificationUrl, onAssetsLoaded, ...props }, ref) => {
+const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event, verificationUrl, ...props }, ref) => {
   const fallbackImage = PlaceHolderImages.find((img) => img.id === 'certificate');
   
-  const [assets, setAssets] = useState({
+  const assets = {
     bg: event.certificateUrl || fallbackImage?.imageUrl || '',
     sign: event.organizerSignUrl || '',
     qr: event.qrCodeUrl || '',
-  });
-
-  const [loadedAssetCount, setLoadedAssetCount] = useState(0);
-
-  const totalAssets = [assets.bg, assets.sign, assets.qr].filter(Boolean).length;
-
-  const handleAssetLoad = useCallback(() => {
-    setLoadedAssetCount(prev => prev + 1);
-  }, []);
-
-  useEffect(() => {
-    if (totalAssets === 0) {
-      onAssetsLoaded();
-      return;
-    } 
-    if (loadedAssetCount >= totalAssets) {
-      onAssetsLoaded();
-    }
-  }, [loadedAssetCount, totalAssets, onAssetsLoaded]);
-
+  };
 
   const textColor = event.certificateTextColor || 'hsl(var(--foreground))';
   const primaryColor = event.certificateTextColor || 'hsl(var(--primary))';
@@ -59,8 +39,6 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
           src={assets.bg}
           alt={event.name || "Certificate background"}
           crossOrigin="anonymous" 
-          onLoad={handleAssetLoad}
-          onError={handleAssetLoad} // Count as loaded even on error to not block forever
           className="absolute inset-0 w-full h-full object-cover"
           data-ai-hint="certificate background"
         />
@@ -89,8 +67,6 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
                           alt="QR Code" 
                           className='h-8 w-8 sm:h-14 sm:w-14 md:h-16 md:w-16' 
                           crossOrigin='anonymous' 
-                          onLoad={handleAssetLoad} 
-                          onError={handleAssetLoad}
                         />
                     </div>
                 ) : (
@@ -127,8 +103,6 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
                     alt="Organizer Signature" 
                     className="h-auto max-h-10 w-auto object-contain" 
                     crossOrigin='anonymous' 
-                    onLoad={handleAssetLoad} 
-                    onError={handleAssetLoad}
                 />
                 ) : <div className="h-4 sm:h-8 md:h-10"/>}
             </div>

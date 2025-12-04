@@ -20,11 +20,6 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
   const { toast } = useToast();
   const certificateWrapperRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [areAssetsLoaded, setAreAssetsLoaded] = useState(false);
-
-  const handleAssetsLoaded = useCallback(() => {
-    setAreAssetsLoaded(true);
-  }, []);
 
   const handleDownload = async () => {
     // We are targeting the inner Certificate div for rendering, not the scaling wrapper
@@ -33,10 +28,6 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
     if (!certificateElement) {
       toast({ title: 'Error', description: 'Certificate element not found.', variant: 'destructive'});
       return;
-    }
-    if (!areAssetsLoaded) {
-       toast({ title: 'Assets still loading', description: 'Please wait for the certificate to fully load before downloading.', variant: 'destructive'});
-       return;
     }
 
     setIsDownloading(true);
@@ -84,17 +75,16 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
           member={member} 
           event={event} 
           verificationUrl={verificationUrl} 
-          onAssetsLoaded={handleAssetsLoaded}
         />
       </div>
       <div className="text-center pt-4 flex justify-center">
-        <Button onClick={handleDownload} disabled={isDownloading || !areAssetsLoaded}>
+        <Button onClick={handleDownload} disabled={isDownloading}>
           {isDownloading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          {isDownloading ? 'Generating...' : (areAssetsLoaded ? 'Download Certificate' : 'Loading Assets...')}
+          {isDownloading ? 'Generating...' : 'Download Certificate'}
         </Button>
       </div>
     </>
