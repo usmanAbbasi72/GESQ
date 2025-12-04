@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { app } from '@/lib/firebase'; // Ensure app is exported from firebase.ts
+import { app } from '@/lib/firebase'; // We still need `app` for the logout function scope
 
 interface AuthContextType {
   user: User | null;
@@ -19,13 +19,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = getAuth(app);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    // getAuth() must be called after Firebase app is initialized.
+    // By calling it inside useEffect, we ensure this runs on the client after mounting.
+    if (app) {
+      const auth = getAuth(app);
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      // If app is not initialized (e.g. missing config), stop loading and show unauthenticated state.
       setLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
   }, []);
 
   const login = (user: User | null) => {
@@ -33,8 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    const auth = getAuth(app);
-    await signOut(auth);
+    if (app) {
+      const auth = getAuth(app);
+      await signOut(auth);
+    }
     setUser(null);
   };
 
