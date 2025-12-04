@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { getMembers as fetchMembers, getEvents as fetchEvents, getPendingMembers as fetchPendingMembers } from '@/lib/data';
-import { db } from '@/lib/firebase';
-import { ref, set, remove, push, onValue } from 'firebase/database';
+import { firestore } from '@/lib/firebase';
+import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import type { Member, Event } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import Certificate from '@/components/certificate';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getAuth } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 type PendingMember = Omit<Member, 'approved'> & { id: string };
 
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
   const [members, setMembers] = React.useState<Member[]>([]);
   const [pendingMembers, setPendingMembers] = React.useState<PendingMember[]>([]);
   const [events, setEvents] = React.useState<Event[]>([]);
-  const [dbStatus, setDbStatus] = React.useState(false);
+  const [dbStatus, setDbStatus] = React.useState(!!firestore);
   const [view, setView] = React.useState<DashboardView>('overview');
   const [isLoading, setIsLoading] = React.useState(true);
   const [isProcessing, setIsProcessing] = React.useState(false);
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
   const [previewEvent, setPreviewEvent] = React.useState<Event | null>(null);
 
   React.useEffect(() => {
+    if (!firestore) return;
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -69,21 +71,12 @@ export default function AdminDashboard() {
         setEvents(eventsData);
       } catch (error) {
         console.error("Error loading data: ", error);
-        toast({ title: 'Error Loading Data', description: 'Could not fetch data from the database. Please check your connection and security rules.', variant: 'destructive' });
+        toast({ title: 'Error Loading Data', description: 'Could not fetch data from Firestore. Please check your connection and security rules.', variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }
     };
     loadData();
-
-    const connectedRef = ref(db, '.info/connected');
-    const unsubscribe = onValue(connectedRef, (snap) => {
-      setDbStatus(snap.val() === true);
-    });
-
-    return () => {
-      unsubscribe();
-    };
   }, [toast]);
 
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
@@ -116,9 +109,9 @@ export default function AdminDashboard() {
   });
 
   const handleApprove = async (pendingMember: PendingMember) => {
+    if (!firestore) return;
     setIsProcessing(true);
     try {
-      const newMemberRef = push(ref(db, 'members'));
       const newMember: Omit<Member, 'id'> = {
         userName: pendingMember.userName,
         fatherName: pendingMember.fatherName,
@@ -129,12 +122,12 @@ export default function AdminDashboard() {
         event: pendingMember.event || '',
       };
       
-      await set(newMemberRef, newMember);
+      const newMemberRef = await addDoc(collection(firestore, 'members'), newMember);
       
-      const pendingMemberRef = ref(db, `pendingMembers/${pendingMember.id}`);
-      await remove(pendingMemberRef);
+      const pendingMemberRef = doc(firestore, `pendingMembers/${pendingMember.id}`);
+      await deleteDoc(pendingMemberRef);
 
-      setMembers(prev => [...prev, { ...newMember, id: newMemberRef.key! }]);
+      setMembers(prev => [...prev, { ...newMember, id: newMemberRef.id }]);
       setPendingMembers(prev => prev.filter(m => m.id !== pendingMember.id));
 
       toast({ title: 'Member Approved', description: `${pendingMember.userName} has been approved.` });
@@ -147,11 +140,12 @@ export default function AdminDashboard() {
   };
 
   const handleReject = async (pendingMemberId: string) => {
+    if (!firestore) return;
     setIsProcessing(true);
     const memberToReject = pendingMembers.find(m => m.id === pendingMemberId);
     try {
-      const pendingMemberRef = ref(db, `pendingMembers/${pendingMemberId}`);
-      await remove(pendingMemberRef);
+      const pendingMemberRef = doc(firestore, `pendingMembers/${pendingMemberId}`);
+      await deleteDoc(pendingMemberRef);
 
       setPendingMembers(prev => prev.filter(m => m.id !== pendingMemberId));
       toast({ title: 'Member Rejected', description: `${memberToReject?.userName || 'Member'} has been rejected.`, variant: 'destructive' });
@@ -164,6 +158,7 @@ export default function AdminDashboard() {
   };
   
   const handleBulkActions = async (action: 'approve' | 'reject') => {
+    if (!firestore) return;
     setIsProcessing(true);
     const selected = pendingMembers.filter(m => selectedPending.includes(m.id));
     if (selected.length === 0) {
@@ -175,14 +170,13 @@ export default function AdminDashboard() {
     try {
       if (action === 'approve') {
         const approvalPromises = selected.map(async (member) => {
-          const newMemberRef = push(ref(db, 'members'));
           const newMember: Omit<Member, 'id'> = {
             userName: member.userName, fatherName: member.fatherName, cnic: member.cnic,
             email: member.email, role: member.role, approved: true, event: member.event || '',
           };
-          await set(newMemberRef, newMember);
-          await remove(ref(db, `pendingMembers/${member.id}`));
-          return { ...newMember, id: newMemberRef.key! };
+          const newMemberRef = await addDoc(collection(firestore, 'members'), newMember);
+          await deleteDoc(doc(firestore, `pendingMembers/${member.id}`));
+          return { ...newMember, id: newMemberRef.id };
         });
         const newApprovedMembers = await Promise.all(approvalPromises);
 
@@ -191,7 +185,7 @@ export default function AdminDashboard() {
         toast({ title: 'Bulk Approve Successful', description: `${selected.length} members have been approved.` });
 
       } else if (action === 'reject') {
-        const rejectionPromises = selected.map(member => remove(ref(db, `pendingMembers/${member.id}`)));
+        const rejectionPromises = selected.map(member => deleteDoc(doc(firestore, `pendingMembers/${member.id}`)));
         await Promise.all(rejectionPromises);
 
         setPendingMembers(prev => prev.filter(m => !selectedPending.includes(m.id)));
@@ -207,10 +201,11 @@ export default function AdminDashboard() {
   };
 
   const handleDelete = async (member: Member) => {
+    if (!firestore) return;
     setIsProcessing(true);
     try {
-      const memberRef = ref(db, `members/${member.id}`);
-      await remove(memberRef);
+      const memberRef = doc(firestore, `members/${member.id}`);
+      await deleteDoc(memberRef);
       setMembers(prev => prev.filter(m => m.id !== member.id));
       toast({ title: 'Member Deleted', description: `${member.userName} has been deleted.`, variant: 'destructive' });
     } catch (e) {
@@ -221,10 +216,11 @@ export default function AdminDashboard() {
   };
   
   const handleDeleteEvent = async (event: Event) => {
+    if (!firestore) return;
     setIsProcessing(true);
     try {
-      const eventRef = ref(db, `events/${event.id}`);
-      await remove(eventRef);
+      const eventRef = doc(firestore, `events/${event.id}`);
+      await deleteDoc(eventRef);
       setEvents(prev => prev.filter(e => e.id !== event.id));
       toast({ title: 'Event Deleted', description: `${event.name} has been deleted.`, variant: 'destructive' });
     } catch(e) {
@@ -235,6 +231,7 @@ export default function AdminDashboard() {
   };
 
   const handleAddMember = async () => {
+    if (!firestore) return;
     if (!newMemberName || !newMemberFatherName || !newMemberCnic || !newMemberEmail || !newMemberRole || !newMemberEvent) {
       toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
       return;
@@ -251,11 +248,10 @@ export default function AdminDashboard() {
     
     setIsProcessing(true);
     try {
-        const pendingMembersRef = ref(db, 'pendingMembers');
-        const newMemberRef = push(pendingMembersRef);
-        await set(newMemberRef, newPendingMemberData);
+        const pendingMembersCol = collection(firestore, 'pendingMembers');
+        const newMemberRef = await addDoc(pendingMembersCol, newPendingMemberData);
 
-        const newMemberWithId = { ...newPendingMemberData, id: newMemberRef.key! };
+        const newMemberWithId = { ...newPendingMemberData, id: newMemberRef.id };
         setPendingMembers(prev => [...prev, newMemberWithId]);
 
         setIsAddMemberOpen(false);
@@ -281,12 +277,12 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateMember = async () => {
-    if (!editingMember) return;
+    if (!editingMember || !firestore) return;
     setIsProcessing(true);
     try {
       const { id, ...memberToSave } = editingMember;
-      const memberRef = ref(db, `members/${id}`);
-      await set(memberRef, memberToSave);
+      const memberRef = doc(firestore, `members/${id}`);
+      await setDoc(memberRef, memberToSave, { merge: true });
 
       setMembers(prev => prev.map(m => (m.id === editingMember.id ? editingMember : m)));
       setIsEditMemberOpen(false);
@@ -306,12 +302,12 @@ export default function AdminDashboard() {
   };
 
   const handleUpdatePendingMember = async () => {
-    if (!editingPendingMember) return;
+    if (!editingPendingMember || !firestore) return;
     setIsProcessing(true);
     try {
       const { id, ...memberToSave } = editingPendingMember;
-      const pendingMemberRef = ref(db, `pendingMembers/${id}`);
-      await set(pendingMemberRef, memberToSave);
+      const pendingMemberRef = doc(firestore, `pendingMembers/${id}`);
+      await setDoc(pendingMemberRef, memberToSave, { merge: true });
 
       setPendingMembers(prev => prev.map(m => 
         m.id === editingPendingMember.id 
@@ -335,12 +331,12 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateEvent = async () => {
-    if (!editingEvent) return;
+    if (!editingEvent || !firestore) return;
     setIsProcessing(true);
      try {
       const { id, ...eventToSave } = editingEvent;
-      const eventRef = ref(db, `events/${id}`);
-      await set(eventRef, eventToSave);
+      const eventRef = doc(firestore, `events/${id}`);
+      await setDoc(eventRef, eventToSave, { merge: true });
 
       setEvents(prev => prev.map(e => (e.id === editingEvent.id ? editingEvent : e)));
       setIsEditEventOpen(false);
@@ -355,6 +351,7 @@ export default function AdminDashboard() {
   };
   
   const handleAddEvent = async () => {
+    if (!firestore) return;
     if (!newEventData.name || !newEventData.date || !newEventData.organizedBy) {
       toast({ title: 'Error', description: 'Please fill out name, date, and organizer.', variant: 'destructive' });
       return;
@@ -364,11 +361,10 @@ export default function AdminDashboard() {
     };
     setIsProcessing(true);
     try {
-      const eventsRef = ref(db, 'events');
-      const newEventRef = push(eventsRef);
-      await set(newEventRef, finalNewEventData);
+      const eventsCol = collection(firestore, 'events');
+      const newEventRef = await addDoc(eventsCol, finalNewEventData);
 
-      const newEventWithId: Event = { ...finalNewEventData, id: newEventRef.key! } as Event;
+      const newEventWithId: Event = { ...finalNewEventData, id: newEventRef.id } as Event;
       setEvents(prevEvents => [...prevEvents, newEventWithId]); 
 
       setIsAddEventOpen(false);

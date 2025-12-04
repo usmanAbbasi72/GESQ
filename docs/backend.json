@@ -1,0 +1,141 @@
+
+{
+  "entities": {
+    "member": {
+      "title": "Member",
+      "description": "An approved member of an event.",
+      "type": "object",
+      "properties": {
+        "userName": {
+          "type": "string",
+          "description": "The name of the member."
+        },
+        "fatherName": {
+          "type": "string",
+          "description": "The father's name of the member."
+        },
+        "cnic": {
+          "type": "string",
+          "description": "The CNIC of the member."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email of the member."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["Participant", "Volunteer", "Organizer", "Supervisor"],
+          "description": "The role of the member in the event."
+        },
+        "approved": {
+          "type": "boolean",
+          "description": "Whether the member is approved."
+        },
+        "event": {
+          "type": "string",
+          "description": "The name of the event the member is associated with."
+        }
+      },
+      "required": ["userName", "fatherName", "cnic", "email", "role", "approved"]
+    },
+    "pendingMember": {
+      "title": "Pending Member",
+      "description": "A member pending approval.",
+      "type": "object",
+      "properties": {
+        "userName": {
+          "type": "string",
+          "description": "The name of the member."
+        },
+        "fatherName": {
+          "type": "string",
+          "description": "The father's name of the member."
+        },
+        "cnic": {
+          "type": "string",
+          "description": "The CNIC of the member."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email of the member."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["Participant", "Volunteer", "Organizer", "Supervisor"],
+          "description": "The role of the member in the event."
+        },
+        "event": {
+          "type": "string",
+          "description": "The name of the event the member is associated with."
+        }
+      },
+      "required": ["userName", "fatherName", "cnic", "email", "role"]
+    },
+    "event": {
+      "title": "Event",
+      "description": "An event organized by the society.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the event."
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "The date of the event."
+        },
+        "organizedBy": {
+          "type": "string",
+          "description": "The organizer of the event."
+        },
+        "certificateUrl": {
+          "type": "string",
+          "description": "URL for the certificate background image."
+        },
+        "certificateBackgroundColor": {
+          "type": "string",
+          "description": "Background color for the certificate."
+        },
+        "certificateTextColor": {
+          "type": "string",
+          "description": "Text color for the certificate."
+        },
+        "organizerSignUrl": {
+          "type": "string",
+          "description": "URL for the organizer's signature image."
+        },
+        "qrCodeUrl": {
+          "type": "string",
+          "description": "URL for a custom QR code image."
+        }
+      },
+      "required": ["name", "date", "organizedBy"]
+    }
+  },
+  "auth": {
+    "providers": ["email-password"]
+  },
+  "firestore": {
+    "/members/{memberId}": {
+      "schema": {
+        "$ref": "#/entities/member"
+      },
+      "description": "Stores approved member data."
+    },
+    "/pendingMembers/{pendingMemberId}": {
+      "schema": {
+        "$ref": "#/entities/pendingMember"
+      },
+      "description": "Stores data for members awaiting approval."
+    },
+    "/events/{eventId}": {
+      "schema": {
+        "$ref": "#/entities/event"
+      },
+      "description": "Stores event data."
+    }
+  }
+}

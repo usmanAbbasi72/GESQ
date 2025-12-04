@@ -1,8 +1,9 @@
+
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Member, Event } from '@/lib/types';
 import { Leaf } from 'lucide-react';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { QRCodeDisplay } from './qr-code-display';
 
 interface CertificateProps {
@@ -14,32 +15,33 @@ interface CertificateProps {
 
 const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member, event, verificationUrl, onAssetsLoaded }, ref) => {
   const fallbackImage = PlaceHolderImages.find((img) => img.id === 'certificate');
-  const certificateImage = event.certificateUrl || fallbackImage?.imageUrl;
+  
+  const [assets, setAssets] = useState({
+    bg: event.certificateUrl || fallbackImage?.imageUrl || '',
+    sign: event.organizerSignUrl || '',
+    qr: event.qrCodeUrl || '',
+  });
+
+  const [loadedAssetCount, setLoadedAssetCount] = useState(0);
+
+  const totalAssets = [assets.bg, assets.sign, assets.qr].filter(Boolean).length;
+
+  const handleAssetLoad = useCallback(() => {
+    setLoadedAssetCount(prev => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    if (totalAssets > 0 && loadedAssetCount >= totalAssets) {
+      onAssetsLoaded();
+    }
+  }, [loadedAssetCount, totalAssets, onAssetsLoaded]);
+
 
   const textColor = event.certificateTextColor || 'hsl(var(--foreground))';
   const primaryColor = event.certificateTextColor || 'hsl(var(--primary))';
   const accentColor = event.certificateTextColor || 'hsl(var(--accent-foreground))';
   const accentBgColor = event.certificateTextColor ? 'hsla(0, 0%, 100%, 0.15)' : 'hsl(var(--accent))';
   const borderColor = event.certificateTextColor || 'hsl(var(--foreground))';
-  
-  const [loadedAssets, setLoadedAssets] = useState<string[]>([]);
-  const imageRefs = useRef<{[key: string]: HTMLImageElement | null}>({});
-
-  const assetsToLoad = [
-    certificateImage,
-    event.organizerSignUrl,
-    event.qrCodeUrl,
-  ].filter(Boolean);
-
-  useEffect(() => {
-    if (loadedAssets.length === assetsToLoad.length) {
-      onAssetsLoaded();
-    }
-  }, [loadedAssets, assetsToLoad.length, onAssetsLoaded]);
-
-  const handleAssetLoad = (assetUrl: string) => {
-    setLoadedAssets(prev => [...new Set([...prev, assetUrl])]);
-  };
 
   return (
     <div 
@@ -47,21 +49,20 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
       className="w-full max-w-3xl mx-auto aspect-[12/8] relative rounded-lg overflow-hidden shadow-2xl border-4 border-primary/50"
       style={{ backgroundColor: event.certificateBackgroundColor || 'hsl(var(--background))' }}
     >
-      {certificateImage && (
+      {assets.bg && (
         <img
-          ref={el => imageRefs.current['bg'] = el}
-          src={certificateImage}
+          src={assets.bg}
           alt={event.name || "Certificate background"}
-          crossOrigin="anonymous" // Required for html2canvas
-          onLoad={() => handleAssetLoad(certificateImage)}
-          onError={() => handleAssetLoad(certificateImage)} // Also call on error to not block downloading
+          crossOrigin="anonymous" 
+          onLoad={handleAssetLoad}
+          onError={handleAssetLoad}
           className="absolute inset-0 w-full h-full object-cover"
           data-ai-hint="certificate background"
         />
       )}
        <div 
           className="absolute inset-0"
-          style={{ backgroundColor: certificateImage ? 'rgba(0,0,0,0.3)' : 'transparent' }}
+          style={{ backgroundColor: assets.bg ? 'rgba(0,0,0,0.3)' : 'transparent' }}
         />
 
       <div className="absolute inset-0 flex flex-col items-center justify-between p-2 sm:p-4 md:p-8 text-center font-serif" style={{ color: textColor }}>
@@ -76,16 +77,15 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
             </div>
             
             <div className="flex flex-col items-center text-[6px] sm:text-xs md:text-sm">
-                {event.qrCodeUrl ? (
+                {assets.qr ? (
                     <div className="p-1 bg-white rounded-md border border-primary/50">
                         <img 
-                          ref={el => imageRefs.current['qr'] = el}
-                          src={event.qrCodeUrl} 
+                          src={assets.qr} 
                           alt="QR Code" 
                           className='h-8 w-8 sm:h-14 sm:w-14 md:h-16 md:w-16' 
                           crossOrigin='anonymous' 
-                          onLoad={() => handleAssetLoad(event.qrCodeUrl!)} 
-                          onError={() => handleAssetLoad(event.qrCodeUrl!)}
+                          onLoad={handleAssetLoad} 
+                          onError={handleAssetLoad}
                         />
                     </div>
                 ) : (
@@ -115,15 +115,14 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
         {/* Footer Section */}
         <div className="w-full flex justify-between items-end text-[6px] sm:text-xs md:text-sm pt-2 sm:pt-4 gap-4">
           <div className='flex-1 flex flex-col items-center w-full'>
-            {event.organizerSignUrl ? (
+            {assets.sign ? (
               <img 
-                ref={el => imageRefs.current['sign'] = el}
-                src={event.organizerSignUrl} 
+                src={assets.sign} 
                 alt="Organizer Signature" 
                 className="h-4 sm:h-8 md:h-10 w-auto object-contain" 
                 crossOrigin='anonymous' 
-                onLoad={() => handleAssetLoad(event.organizerSignUrl!)} 
-                onError={() => handleAssetLoad(event.organizerSignUrl!)}
+                onLoad={handleAssetLoad} 
+                onError={handleAssetLoad}
               />
             ) : <div className="h-4 sm:h-8 md:h-10"/>}
             <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Organizer's Signature</p>
@@ -131,9 +130,10 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
           </div>
 
           <div className='flex-1 flex flex-col items-center w-full'>
-            <div className="h-4 sm:h-8 md:h-10" />
+            <div className="h-4 sm:h-8 md:h-10 flex items-center justify-center">
+              <span className="font-sans font-bold text-lg">{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            </div>
             <p className="font-bold border-t pt-1 mt-1 w-full" style={{ borderColor: borderColor }}>Event Date</p>
-            <p>{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
         </div>
       </div>

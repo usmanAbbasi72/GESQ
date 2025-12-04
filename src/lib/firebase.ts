@@ -1,7 +1,7 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
-import { getDatabase, Database } from "firebase/database";
+import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
 // Your web app's Firebase configuration using environment variables
@@ -30,15 +30,15 @@ function isFirebaseConfigValid(config: FirebaseOptions): boolean {
 
 // Initialize Firebase
 let app;
-let db: Database | undefined;
+let firestore: Firestore | undefined;
 let auth: Auth | undefined;
 
 if (isFirebaseConfigValid(firebaseConfig)) {
   app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  db = getDatabase(app);
+  firestore = getFirestore(app);
   auth = getAuth(app);
 } else {
   console.error("Firebase config is invalid. Make sure all required environment variables are set.");
 }
 
-export { app, db, auth };
+export { app, firestore, auth };
