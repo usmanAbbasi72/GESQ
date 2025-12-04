@@ -118,25 +118,29 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
         {/* Footer Section */}
         <div className="w-full flex justify-between items-end text-[6px] sm:text-xs md:text-sm pt-2 sm:pt-4 gap-4">
           <div className='flex-1 flex flex-col items-center w-full'>
-            {assets.sign ? (
-              <img 
-                src={assets.sign} 
-                alt="Organizer Signature" 
-                className="h-4 sm:h-8 md:h-10 w-auto object-contain mb-1" 
-                crossOrigin='anonymous' 
-                onLoad={handleAssetLoad} 
-                onError={handleAssetLoad}
-              />
-            ) : <div className="h-4 sm:h-8 md:h-10 mb-1"/>}
+            <div className="h-4 sm:h-8 md:h-12 flex items-center justify-center">
+                {assets.sign ? (
+                <img 
+                    src={assets.sign} 
+                    alt="Organizer Signature" 
+                    className="h-auto max-h-full w-auto object-contain" 
+                    crossOrigin='anonymous' 
+                    onLoad={handleAssetLoad} 
+                    onError={handleAssetLoad}
+                />
+                ) : <div className="h-4 sm:h-8 md:h-10"/>}
+            </div>
             <p className="font-bold border-t pt-1 w-full" style={{ borderColor: borderColor }}>Organizer's Signature</p>
             <p className="w-full truncate px-1">{event.organizedBy}</p>
           </div>
 
           <div className='flex-1 flex flex-col items-center w-full'>
-            <div className="h-4 sm:h-8 md:h-10 mb-1 flex items-center justify-center">
+            <div className="h-4 sm:h-8 md:h-12 flex items-center justify-center">
               <span className="font-sans font-bold text-lg">{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
-            <p className="font-bold border-t pt-1 w-full" style={{ borderColor: borderColor }}>Event Date</p>
+            <div className="border-t pt-1 w-full" style={{ borderColor: borderColor }}>
+                 <p className="font-bold">Event Date</p>
+            </div>
             <p className="w-full truncate px-1">&nbsp;</p>
           </div>
         </div>
