@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     siteName: 'GreenPass',
     images: [
       {
-        url: '/og-image.png', // Must be an absolute URL
+        url: `${siteUrl}/og-image.png`, // Must be an absolute URL
         width: 1200,
         height: 630,
       },
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'GreenPass Certificate Verification',
     description: 'Authentic certificate verification for Green Environmental Society events.',
-    images: ['/og-image.png'], // Must be an absolute URL
+    images: [`${siteUrl}/og-image.png`], // Must be an absolute URL
   },
 };
 

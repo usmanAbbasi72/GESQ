@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import { Download, Award, Loader2 } from 'lucide-react';
@@ -42,9 +42,6 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
         useCORS: true,
         backgroundColor: null,
         logging: false, 
-        onclone: (document) => {
-          // This is a good place to ensure fonts are loaded in the cloned document if needed
-        }
       });
 
       const link = document.createElement('a');
@@ -69,7 +66,7 @@ export function CertificateDisplay({ member, event, verificationUrl }: Certifica
           <Award className="text-primary"/> Digital Certificate
         </h3>
       </div>
-      <div ref={certificateWrapperRef} className="w-full overflow-x-auto py-4">
+      <div ref={certificateWrapperRef} className="w-full py-4">
         <Certificate 
           id="certificate-to-print"
           member={member} 

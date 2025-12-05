@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Member, Event } from '@/lib/types';
 import { Leaf } from 'lucide-react';
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import { QRCodeDisplay } from './qr-code-display';
 
 interface CertificateProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -96,7 +96,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
         {/* Footer Section */}
         <div className="w-full flex justify-between items-end text-[6px] sm:text-xs md:text-sm pt-2 sm:pt-4 gap-4">
           <div className='flex-1 flex flex-col items-center w-full'>
-             <div className="h-4 sm:h-8 md:h-12 flex items-center justify-center">
+             <div className="h-auto max-h-10 flex items-center justify-center">
                 {assets.sign ? (
                 <img 
                     src={assets.sign} 
@@ -111,7 +111,7 @@ const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(({ member
           </div>
 
           <div className='flex-1 flex flex-col items-center w-full'>
-            <div className="h-4 sm:h-8 md:h-12 flex items-center justify-center">
+            <div className="h-auto max-h-10 flex items-center justify-center">
               <span className="font-sans font-bold text-lg">{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
             <div className="border-t pt-1 w-full" style={{ borderColor: borderColor }}>
